@@ -1,0 +1,116 @@
+@import 'tailwindcss';
+
+:root {
+  /* Brand palette (white + orange). */
+  --brand: #ff6343;
+  --brand-600: #ee593b;
+  --brand-700: #d94b32;
+
+  /* Neutral system (kept intentionally small and legible). */
+  --paper: #ffffff;
+  --paper-muted: #f7f8f5;
+  --ink: #111111;
+  --ink-muted: #626262;
+  --stroke: rgba(17, 17, 17, 0.12);
+  --stroke-strong: rgba(17, 17, 17, 0.2);
+
+  /* Layout / surface tokens. */
+  --radius-shell: 28px;
+  --shadow-shell: 0 26px 55px rgba(17, 17, 17, 0.28);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  /* Reference-style: clean paper background with orange accents. */
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body), ui-sans-serif, system-ui, -apple-system, Segoe UI,
+    Roboto, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
+}
+
+::selection {
+  background: color-mix(in oklab, var(--brand), white 60%);
+}
+
+.tv-display {
+  font-family: var(--font-display), var(--font-body), ui-sans-serif, system-ui;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.tv-kicker {
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.tv-outer {
+  min-height: 100vh;
+  padding: 0;
+}
+
+@media (min-width: 640px) {
+  .tv-outer {
+    padding: 0;
+  }
+}
+
+.tv-shell {
+  width: 100%;
+  background: var(--paper);
+}
+
+.tv-divider {
+  height: 1px;
+  background: var(--stroke);
+}
+
+.tv-card {
+  border: 1px solid var(--stroke);
+  background: var(--paper);
+  border-radius: 18px;
+}
+
+.tv-card-muted {
+  background: var(--paper-muted);
+}
+
+.markdown :where(p) {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.markdown :where(ul) {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-left: 1.25rem;
+  list-style: disc;
+}
+
+.markdown :where(ol) {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-left: 1.25rem;
+  list-style: decimal;
+}
+
+.markdown :where(li) {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.markdown :where(a) {
+  color: var(--brand);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.markdown :where(h2) {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--ink);
+}
