@@ -21,29 +21,22 @@ export function FeaturedEventCard(props: {
     <Link
       href={`/events/${event.key}`}
       className={cn(
-        'tv-card group block overflow-hidden shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+        'tv-card group block p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-l-4 border-l-[color:var(--brand)]',
         props.className,
       )}
     >
-      <div className="relative h-32 bg-[color:var(--paper-muted)]">
-        <div className="absolute inset-x-0 bottom-0 h-1 bg-[color:var(--brand)]" />
-
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[color:var(--stroke-strong)] bg-white shadow-sm transition-transform duration-300 group-hover:scale-105">
-            <span className="tv-display text-2xl leading-none text-[color:var(--brand)]">
-              {event.title.charAt(0).toUpperCase()}
-            </span>
-          </div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="tv-kicker text-[10px] font-semibold tracking-wider text-[color:var(--ink-muted)]">
+          Featured · {event.organizer}
         </div>
-
         {event.badge ? (
-          <span className="absolute right-3 top-3 rounded-full bg-[color:var(--brand)] px-2.5 py-0.5 text-[11px] font-semibold text-white shadow-sm">
+          <span className="rounded-full bg-[color:var(--brand)] px-2.5 py-0.5 text-[11px] font-semibold text-white shadow-sm">
             {event.badge}
           </span>
         ) : null}
       </div>
 
-      <div className="p-4">
+      <div className="mt-3">
         <h3 className="line-clamp-2 text-base font-bold leading-snug text-[color:var(--ink)] transition-colors duration-150 group-hover:text-[color:var(--brand)]">
           {event.title}
         </h3>
@@ -84,15 +77,6 @@ export function FeaturedEventCard(props: {
               </span>
             </>
           ) : null}
-        </div>
-
-        <div className="mt-4 flex items-center justify-between gap-4 border-t border-[color:var(--stroke)] pt-3">
-          <span className="text-xs text-[color:var(--ink-muted)]">
-            by{' '}
-            <span className="font-medium text-[color:var(--ink)]">
-              {event.organizer}
-            </span>
-          </span>
         </div>
       </div>
     </Link>

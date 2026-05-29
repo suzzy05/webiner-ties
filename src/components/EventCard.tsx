@@ -19,31 +19,17 @@ export function EventCard(props: { event: ListedEvent; className?: string }) {
     <Link
       href={`/events/${event.slug}`}
       className={cn(
-        'tv-card group block overflow-hidden shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md',
+        'tv-card group block p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md border-l-4 border-l-[color:var(--brand)]',
         props.className,
       )}
     >
-      <div className="relative h-28 bg-[color:var(--paper-muted)]">
-        <div className="absolute inset-x-0 bottom-0 h-1 bg-[color:var(--brand)]" />
-
-        <div className="absolute inset-0 flex items-center gap-3 px-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[color:var(--stroke-strong)] bg-white shadow-sm">
-            <span className="tv-display text-xl leading-none text-[color:var(--brand)]">
-              {event.title.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div className="min-w-0">
-            <div className="tv-kicker text-[10px] font-semibold text-[color:var(--ink-muted)]">
-              {isOnline ? 'Online' : 'In person'}
-            </div>
-            <div className="truncate text-xs font-medium text-[color:var(--ink)]">
-              {event.organizer.name}
-            </div>
-          </div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="tv-kicker text-[10px] font-semibold tracking-wider text-[color:var(--ink-muted)]">
+          {isOnline ? 'Online' : 'In person'} · {event.organizer.name}
         </div>
       </div>
 
-      <div className="p-4">
+      <div className="mt-3">
         <h3 className="line-clamp-2 text-base font-bold leading-snug text-[color:var(--ink)] transition-colors duration-150 group-hover:text-[color:var(--brand)]">
           {event.title}
         </h3>

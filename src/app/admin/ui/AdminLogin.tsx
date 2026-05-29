@@ -7,25 +7,36 @@ export function AdminLogin() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [message, setMessage] = useState<string>('')
 
-  const submit = async () => {
-    setStatus('loading')
-    setMessage('')
-    const res = await fetch('/api/admin/login', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ password }),
-    })
-    if (!res.ok) {
-      const json = (await res.json().catch(() => null)) as any
+  const submit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!password.trim()) {
       setStatus('error')
-      setMessage(json?.error ?? 'Could not sign in.')
+      setMessage('Password is required.')
       return
     }
-    window.location.reload()
+    setStatus('loading')
+    setMessage('')
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ password }),
+      })
+      if (!res.ok) {
+        const json = (await res.json().catch(() => null)) as any
+        setStatus('error')
+        setMessage(json?.error ?? 'Could not sign in.')
+        return
+      }
+      window.location.reload()
+    } catch (err: any) {
+      setStatus('error')
+      setMessage(err?.message ?? 'Network error occurred.')
+    }
   }
 
   return (
-    <div className="tv-card tv-card-muted max-w-md p-6 shadow-sm">
+    <form onSubmit={submit} className="tv-card tv-card-muted max-w-md p-6 shadow-sm">
       <div className="text-sm font-semibold text-[color:var(--ink)]">
         Admin sign-in
       </div>
@@ -46,10 +57,8 @@ export function AdminLogin() {
       </div>
 
       <button
-        type="button"
-        disabled={!password.trim() || status === 'loading'}
-        onClick={submit}
-        className="mt-5 inline-flex h-10 items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[color:var(--brand-600)] disabled:opacity-45"
+        type="submit"
+        className="mt-5 inline-flex h-10 items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[color:var(--brand-600)]"
       >
         {status === 'loading' ? 'Signing in…' : 'Sign in'}
       </button>
@@ -59,7 +68,7 @@ export function AdminLogin() {
           {message}
         </div>
       ) : null}
-    </div>
+    </form>
   )
 }
 

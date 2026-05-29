@@ -179,8 +179,7 @@ export default async function Page({
                 className="w-full object-cover"
               />
             ) : (
-              <div className="relative flex min-h-64 items-center justify-center overflow-hidden bg-[color:var(--paper-muted)] p-8">
-                <div className="absolute inset-x-0 bottom-0 h-1.5 bg-[color:var(--brand)]" />
+              <div className="relative flex min-h-64 items-center justify-center overflow-hidden bg-[color:var(--paper-muted)] p-8 border-l-4 border-l-[color:var(--brand)]">
                 <div className="relative z-10 text-center">
                   <div className="tv-display text-3xl font-semibold leading-tight tracking-tight text-[color:var(--ink)]">
                     {event.title}
