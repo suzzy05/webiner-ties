@@ -21,7 +21,7 @@ const schema = z.object({
 
 export async function POST(
   req: Request,
-  ctx: RouteContext<'/api/events/[slug]/rsvps'>,
+  ctx: { params: Promise<{ slug: string }> },
 ) {
   const { slug } = await ctx.params
   const body = await req.json()

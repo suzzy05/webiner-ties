@@ -74,6 +74,7 @@ export async function listRsvpsForEvent(eventId: string) {
 
 export async function createRsvpSubmission(input: {
   eventId: string
+  ticketIdRef?: string | null
   answers: Record<string, unknown>
   structured: {
     fullName: string
@@ -106,24 +107,14 @@ export async function createRsvpSubmission(input: {
   await db.execute({
     sql: `
       INSERT INTO rsvp_submissions (
-        id,
-        event_id,
-        ticket_id,
-        created_at,
-        full_name,
-        email,
-        whatsapp,
-        role,
-        org,
-        country,
-        city,
-        heard_from,
-        hope_to_learn
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, event_id, ticket_id_ref, ticket_id, created_at,
+        full_name, email, whatsapp, role, org, country, city, heard_from, hope_to_learn
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     args: [
       submissionId,
       input.eventId,
+      input.ticketIdRef ?? null,
       tid,
       createdAt,
       input.structured.fullName,

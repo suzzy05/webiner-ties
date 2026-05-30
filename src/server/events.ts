@@ -3,7 +3,7 @@ import { getDb } from './db'
 import { mockEvents } from '@/data/mockEvents'
 import type { VenueType } from '@/data/mockEvents'
 import { buildDefaultRsvpQuestions } from './defaultRsvpForm'
-import { getRsvpCount, createRsvpSubmission } from './rsvps'
+import { createRsvpSubmission } from './rsvps'
 
 function nowIso() {
   return new Date().toISOString()
@@ -22,6 +22,39 @@ function labelToKey(label: string) {
     .replace(/(^_+|_+$)+/g, '')
 }
 
+// Shared SELECT columns for all event queries (avoids e.* / JOIN column conflicts).
+const EVENT_SELECT = `
+  e.id,
+  e.slug,
+  e.title,
+  e.summary,
+  e.description_md,
+  e.poster_url,
+  e.venue_type,
+  e.meeting_url,
+  e.location_text,
+  e.maps_embed_url,
+  e.maps_link_url,
+  e.start_at,
+  e.end_at,
+  e.timezone,
+  e.capacity,
+  e.is_published,
+  e.organizer_handle,
+  e.created_at,
+  e.updated_at,
+  COALESCE(o.name,    e.organizer_name)    AS organizer_name,
+  COALESCE(o.bio,     e.organizer_bio)     AS organizer_bio,
+  COALESCE(o.website, e.organizer_website) AS organizer_website,
+  GROUP_CONCAT(et.tag_name)                AS tag_list,
+  (SELECT COUNT(*) FROM rsvp_submissions s WHERE s.event_id = e.id) AS rsvps
+`
+
+const EVENT_JOINS = `
+  LEFT JOIN organizers o  ON o.handle   = e.organizer_handle
+  LEFT JOIN event_tags et ON et.event_id = e.id
+`
+
 let seedPromise: Promise<void> | null = null
 
 async function ensureSeeded() {
@@ -36,33 +69,34 @@ async function ensureSeeded() {
       if (!e.published) continue
       const id = randomUUID()
       const createdAt = nowIso()
-      const updatedAt = createdAt
+      const tagsCsv = e.tags.map(normalizeTag).filter(Boolean).join(',')
 
+      // Upsert organizer.
+      await db.execute({
+        sql: `
+          INSERT OR IGNORE INTO organizers (handle, name, bio, website, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `,
+        args: [
+          e.organizer.handle,
+          e.organizer.name,
+          e.organizer.bio ?? null,
+          e.organizer.website ?? null,
+          createdAt,
+          createdAt,
+        ],
+      })
+
+      // Insert event.
       await db.execute({
         sql: `
           INSERT INTO events (
-            id,
-            slug,
-            title,
-            summary,
-            description_md,
-            poster_url,
-            tags_csv,
-            venue_type,
-            meeting_url,
-            location_text,
-            maps_embed_url,
-            maps_link_url,
-            start_at,
-            end_at,
-            timezone,
-            organizer_handle,
-            organizer_name,
-            organizer_bio,
-            organizer_website,
-            created_at,
-            updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            id, slug, title, summary, description_md, poster_url, tags_csv,
+            venue_type, meeting_url, location_text, maps_embed_url, maps_link_url,
+            start_at, end_at, timezone, capacity, is_published,
+            organizer_handle, organizer_name, organizer_bio, organizer_website,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         args: [
           id,
@@ -71,7 +105,7 @@ async function ensureSeeded() {
           e.summary,
           e.descriptionMd,
           e.coverImageUrl ?? null,
-          e.tags.join(','),
+          tagsCsv,
           e.venueType,
           e.meetingUrl ?? null,
           e.locationText ?? null,
@@ -80,14 +114,37 @@ async function ensureSeeded() {
           e.startAt.toISOString(),
           e.endAt ? e.endAt.toISOString() : null,
           e.timezone,
+          null,
+          e.published ? 1 : 0,
           e.organizer.handle,
           e.organizer.name,
           e.organizer.bio ?? null,
           e.organizer.website ?? null,
           createdAt,
-          updatedAt,
+          createdAt,
         ],
       })
+
+      // Insert tags.
+      for (const tagName of tagsCsv.split(',').filter(Boolean)) {
+        await db.execute({ sql: `INSERT OR IGNORE INTO tags (name) VALUES (?)`, args: [tagName] })
+        await db.execute({
+          sql: `INSERT OR IGNORE INTO event_tags (event_id, tag_name) VALUES (?, ?)`,
+          args: [id, tagName],
+        })
+      }
+
+      // Insert tickets.
+      for (let i = 0; i < e.tickets.length; i++) {
+        const t = e.tickets[i]!
+        await db.execute({
+          sql: `
+            INSERT INTO tickets (id, event_id, name, description, price_in_paise, quantity, sort_order, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `,
+          args: [t.id, id, t.name, t.description ?? null, t.priceInPaise, null, i, createdAt],
+        })
+      }
 
       await insertDefaultQuestions(id)
     }
@@ -113,19 +170,8 @@ async function insertDefaultQuestions(eventId: string) {
   for (const q of questions) {
     await db.execute({
       sql: `
-        INSERT INTO rsvp_questions (
-          id,
-          event_id,
-          step,
-          ord,
-          key,
-          label,
-          field_type,
-          required,
-          options_json,
-          placeholder,
-          created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO rsvp_questions (id, event_id, step, ord, key, label, field_type, required, options_json, placeholder, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       args: [
         q.id,
@@ -144,18 +190,13 @@ async function insertDefaultQuestions(eventId: string) {
   }
 }
 
-export type ListEventsInput = {
-  q?: string
-  tag?: string
-  venue?: VenueType
-  after?: Date
-  before?: Date
-  take?: number
-}
-
-export type ListedEvent = Awaited<ReturnType<typeof listEvents>>[number]
-
 function rowToEvent(row: any) {
+  const tagList = row.tag_list
+    ? String(row.tag_list)
+        .split(',')
+        .map((t: string) => t.trim())
+        .filter(Boolean)
+    : []
   return {
     id: String(row.id),
     slug: String(row.slug),
@@ -163,11 +204,7 @@ function rowToEvent(row: any) {
     summary: String(row.summary),
     descriptionMd: String(row.description_md),
     coverImageUrl: row.poster_url ? String(row.poster_url) : null,
-    tags: String(row.tags_csv ?? ''),
-    tagList: String(row.tags_csv ?? '')
-      .split(',')
-      .map((t) => t.trim())
-      .filter(Boolean),
+    tagList,
     startAt: new Date(String(row.start_at)),
     endAt: row.end_at ? new Date(String(row.end_at)) : null,
     timezone: String(row.timezone),
@@ -176,14 +213,27 @@ function rowToEvent(row: any) {
     locationText: row.location_text ? String(row.location_text) : null,
     mapsEmbedUrl: row.maps_embed_url ? String(row.maps_embed_url) : null,
     mapsLinkUrl: row.maps_link_url ? String(row.maps_link_url) : null,
+    capacity: row.capacity != null ? Number(row.capacity) : null,
+    isPublished: Number(row.is_published ?? 1) === 1,
     organizer: {
       handle: String(row.organizer_handle),
-      name: String(row.organizer_name),
+      name: String(row.organizer_name ?? ''),
       bio: row.organizer_bio ? String(row.organizer_bio) : null,
       website: row.organizer_website ? String(row.organizer_website) : null,
     },
     _count: { rsvps: Number(row.rsvps ?? 0) || 0 },
   }
+}
+
+export type ListedEvent = Awaited<ReturnType<typeof listEvents>>[number]
+
+export type ListEventsInput = {
+  q?: string
+  tag?: string
+  venue?: VenueType
+  after?: Date
+  before?: Date
+  take?: number
 }
 
 export async function listEvents(input: ListEventsInput = {}) {
@@ -211,22 +261,25 @@ export async function listEvents(input: ListEventsInput = {}) {
   }
   if (q) {
     where.push(
-      '(LOWER(e.title) LIKE ? OR LOWER(e.summary) LIKE ? OR LOWER(e.tags_csv) LIKE ? OR LOWER(COALESCE(e.location_text, \'\')) LIKE ?)',
+      `(LOWER(e.title) LIKE ? OR LOWER(e.summary) LIKE ? OR LOWER(COALESCE(e.location_text,'')) LIKE ? OR LOWER(e.tags_csv) LIKE ?)`,
     )
     const like = `%${q}%`
     args.push(like, like, like, like)
   }
   if (tag) {
-    where.push('LOWER(e.tags_csv) LIKE ?')
-    args.push(`%${tag}%`)
+    // Use event_tags for accurate tag matching instead of LIKE on CSV.
+    where.push(
+      `EXISTS (SELECT 1 FROM event_tags _et WHERE _et.event_id = e.id AND _et.tag_name = ?)`,
+    )
+    args.push(tag)
   }
 
   const sql = `
-    SELECT
-      e.*,
-      (SELECT COUNT(*) FROM rsvp_submissions s WHERE s.event_id = e.id) as rsvps
+    SELECT ${EVENT_SELECT}
     FROM events e
+    ${EVENT_JOINS}
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+    GROUP BY e.id
     ORDER BY e.start_at ASC
     LIMIT ?
   `
@@ -241,11 +294,11 @@ export async function getEventBySlug(slug: string) {
 
   const rs = await db.execute({
     sql: `
-      SELECT
-        e.*,
-        (SELECT COUNT(*) FROM rsvp_submissions s WHERE s.event_id = e.id) as rsvps
+      SELECT ${EVENT_SELECT}
       FROM events e
+      ${EVENT_JOINS}
       WHERE e.slug = ?
+      GROUP BY e.id
       LIMIT 1
     `,
     args: [slug],
@@ -254,6 +307,28 @@ export async function getEventBySlug(slug: string) {
   const row = rs.rows[0]
   if (!row) return null
   return rowToEvent(row as any)
+}
+
+export async function getTicketsForEvent(eventId: string) {
+  await ensureSeeded()
+  const db = await getDb()
+  const rs = await db.execute({
+    sql: `
+      SELECT id, name, description, price_in_paise, quantity, sort_order
+      FROM tickets
+      WHERE event_id = ?
+      ORDER BY sort_order ASC
+    `,
+    args: [eventId],
+  })
+  return rs.rows.map((r: any) => ({
+    id: String(r.id),
+    name: String(r.name),
+    description: r.description ? String(r.description) : null,
+    priceInPaise: Number(r.price_in_paise ?? 0),
+    quantity: r.quantity != null ? Number(r.quantity) : null,
+    sortOrder: Number(r.sort_order ?? 0),
+  }))
 }
 
 export async function getRsvpFormForEvent(eventId: string) {
@@ -303,9 +378,8 @@ export async function addRsvpQuestionToEvent(
 
   await db.execute({
     sql: `
-      INSERT INTO rsvp_questions (
-        id, event_id, step, ord, key, label, field_type, required, options_json, placeholder, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO rsvp_questions (id, event_id, step, ord, key, label, field_type, required, options_json, placeholder, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     args: [
       id,
@@ -339,50 +413,54 @@ export async function createEvent(input: {
   startAt: Date
   endAt?: Date | null
   timezone: string
+  capacity?: number | null
+  organizer?: {
+    handle: string
+    name: string
+    bio?: string | null
+    website?: string | null
+  }
 }) {
   await ensureSeeded()
   const db = await getDb()
 
   const id = randomUUID()
   const createdAt = nowIso()
-  const updatedAt = createdAt
 
-  // Slug: use a deterministic base + suffix to avoid collisions.
   const base = input.title
     .trim()
     .toLowerCase()
     .replace(/['"]/g, '')
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)+/g, '')
-
   const slug = `${base}-${id.slice(0, 6)}`
   const tagsCsv = input.tags.map(normalizeTag).filter(Boolean).join(',')
+
+  const org = input.organizer ?? {
+    handle: 'tiesverse',
+    name: 'Tiesverse',
+    bio: 'Webinars, meetups, and live learning for the Tiesverse community.',
+    website: 'https://tiesverse.com',
+  }
+
+  // Upsert organizer.
+  await db.execute({
+    sql: `
+      INSERT OR IGNORE INTO organizers (handle, name, bio, website, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `,
+    args: [org.handle, org.name, org.bio ?? null, org.website ?? null, createdAt, createdAt],
+  })
 
   await db.execute({
     sql: `
       INSERT INTO events (
-        id,
-        slug,
-        title,
-        summary,
-        description_md,
-        poster_url,
-        tags_csv,
-        venue_type,
-        meeting_url,
-        location_text,
-        maps_embed_url,
-        maps_link_url,
-        start_at,
-        end_at,
-        timezone,
-        organizer_handle,
-        organizer_name,
-        organizer_bio,
-        organizer_website,
-        created_at,
-        updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, slug, title, summary, description_md, poster_url, tags_csv,
+        venue_type, meeting_url, location_text, maps_embed_url, maps_link_url,
+        start_at, end_at, timezone, capacity, is_published,
+        organizer_handle, organizer_name, organizer_bio, organizer_website,
+        created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     args: [
       id,
@@ -400,14 +478,25 @@ export async function createEvent(input: {
       input.startAt.toISOString(),
       input.endAt ? input.endAt.toISOString() : null,
       input.timezone,
-      'tiesverse',
-      'Tiesverse',
-      'Webinars, meetups, and live learning for the Tiesverse community.',
-      'https://tiesverse.com',
+      input.capacity ?? null,
+      1,
+      org.handle,
+      org.name,
+      org.bio ?? null,
+      org.website ?? null,
       createdAt,
-      updatedAt,
+      createdAt,
     ],
   })
+
+  // Insert tags.
+  for (const tagName of tagsCsv.split(',').filter(Boolean)) {
+    await db.execute({ sql: `INSERT OR IGNORE INTO tags (name) VALUES (?)`, args: [tagName] })
+    await db.execute({
+      sql: `INSERT OR IGNORE INTO event_tags (event_id, tag_name) VALUES (?, ?)`,
+      args: [id, tagName],
+    })
+  }
 
   await insertDefaultQuestions(id)
 
@@ -432,7 +521,6 @@ export async function createRsvp(input: {
   const event = await getEventBySlug(input.eventSlug)
   if (!event) return { ok: false as const, code: 'NOT_FOUND' as const }
 
-  // Very small validation: prevent duplicate email per event.
   const db = await getDb()
   const existing = await db.execute({
     sql: 'SELECT 1 FROM rsvp_submissions WHERE event_id = ? AND LOWER(email) = LOWER(?) LIMIT 1',
@@ -443,9 +531,7 @@ export async function createRsvp(input: {
   }
 
   const questions = await getRsvpFormForEvent(event.id)
-  const requiredIds = new Set(
-    questions.filter((q) => q.required).map((q) => q.id),
-  )
+  const requiredIds = new Set(questions.filter((q) => q.required).map((q) => q.id))
   for (const qid of requiredIds) {
     if (input.answers[qid] == null || String(input.answers[qid]).trim() === '') {
       return { ok: false as const, code: 'INVALID' as const }
