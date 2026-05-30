@@ -34,8 +34,12 @@ export function RegisterButton(props: {
 
           <button
             type="button"
-            onClick={() => setIsOpen(true)}
-            className="rounded-full border border-[color:var(--brand)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--brand)] shadow-sm transition-colors hover:bg-[color:color-mix(in_oklab,var(--brand),white_85%)] active:scale-[0.98]"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsOpen(true)
+            }}
+            className="rounded-full border border-[color:var(--brand)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--brand)] shadow-sm transition-colors hover:bg-[color:color-mix(in_oklab,var(--brand),white_85%)]"
           >
             Register
           </button>

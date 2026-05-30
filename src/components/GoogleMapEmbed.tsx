@@ -24,6 +24,7 @@ export function GoogleMapEmbed(props: {
   embedUrl?: string | null
   mapsLinkUrl?: string | null
   height?: number
+  variant?: 'soft' | 'hard'
   className?: string
 }) {
   const src = props.embedUrl || buildSrc(props.location)
@@ -31,9 +32,15 @@ export function GoogleMapEmbed(props: {
     props.mapsLinkUrl ||
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(props.location)}`
 
+  const variant = props.variant ?? 'soft'
+  const frameClassName =
+    variant === 'hard'
+      ? 'overflow-hidden border-2 border-[color:var(--on-background)] bg-[color:var(--surface-container-high)]'
+      : 'overflow-hidden rounded-2xl border border-[color:var(--stroke)] shadow-sm'
+
   return (
     <div className={props.className}>
-      <div className="overflow-hidden rounded-2xl border border-[color:var(--stroke)] shadow-sm">
+      <div className={frameClassName}>
         <iframe
           src={src}
           width="100%"
@@ -49,7 +56,11 @@ export function GoogleMapEmbed(props: {
         href={mapsLink}
         target="_blank"
         rel="noreferrer"
-        className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-[color:var(--brand)] hover:underline"
+        className={
+          variant === 'hard'
+            ? 'mt-2 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--primary)] hover:underline'
+            : 'mt-2 inline-flex items-center gap-1 text-xs font-medium text-[color:var(--brand)] hover:underline'
+        }
       >
         View on Google Maps →
       </a>

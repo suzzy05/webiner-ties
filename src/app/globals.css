@@ -1,22 +1,40 @@
 @import 'tailwindcss';
 
 :root {
-  /* Brand palette (white + orange). */
-  --brand: #ff6343;
-  --brand-600: #ee593b;
-  --brand-700: #d94b32;
+  /* Homepage palette (ported from the provided HTML). */
+  --background: #fcf9f8;
+  --on-background: #1b1c1b;
 
-  /* Neutral system (kept intentionally small and legible). */
-  --paper: #ffffff;
-  --paper-muted: #f7f8f5;
-  --ink: #111111;
-  --ink-muted: #626262;
-  --stroke: rgba(17, 17, 17, 0.12);
-  --stroke-strong: rgba(17, 17, 17, 0.2);
+  --surface: #fcf9f8;
+  --surface-container-low: #f6f3f2;
+  --surface-container-high: #eae7e7;
+  --surface-container-highest: #e4e2e1;
 
-  /* Layout / surface tokens. */
-  --radius-shell: 28px;
-  --shadow-shell: 0 26px 55px rgba(17, 17, 17, 0.28);
+  --on-surface: #1c1b1b;
+  --on-surface-variant: #5a413b;
+
+  --primary: #8d1700;
+  --primary-container: #b22c11;
+  --on-primary: #ffffff;
+
+  --secondary-container: #fb6040;
+  --on-secondary-fixed: #3e0500;
+
+  --outline-editorial: rgba(17, 17, 17, 0.12);
+  --outline: rgba(17, 17, 17, 0.2);
+
+  /* Backwards-compatible tokens used across the app. */
+  --brand-orange: #ff6343;
+  --brand: var(--secondary-container);
+  --brand-600: #f45636;
+  --brand-700: #e64e31;
+
+  --paper: var(--background);
+  --paper-muted: var(--surface-container-low);
+  --ink: var(--on-background);
+  --ink-muted: rgba(27, 28, 27, 0.7);
+  --stroke: var(--outline-editorial);
+  --stroke-strong: var(--outline);
 }
 
 html,
@@ -26,14 +44,14 @@ body {
 
 body {
   /* Reference-style: clean paper background with orange accents. */
-  background: var(--paper);
+  background: var(--background);
   color: var(--ink);
   font-family: var(--font-body), ui-sans-serif, system-ui, -apple-system, Segoe UI,
     Roboto, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';
 }
 
 ::selection {
-  background: color-mix(in oklab, var(--brand), white 60%);
+  background: color-mix(in oklab, var(--secondary-container), white 60%);
 }
 
 .tv-display {
@@ -60,22 +78,81 @@ body {
 
 .tv-shell {
   width: 100%;
-  background: var(--paper);
+  background: transparent;
 }
 
 .tv-divider {
   height: 1px;
-  background: var(--stroke);
+  background: var(--outline-editorial);
 }
 
 .tv-card {
   border: 1px solid var(--stroke);
   background: var(--paper);
-  border-radius: 18px;
+  border-radius: 0;
 }
 
 .tv-card-muted {
   background: var(--paper-muted);
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.tv-hard-shadow {
+  box-shadow: 8px 8px 0 0 rgba(17, 17, 17, 1);
+}
+
+.tv-hard-shadow-sm {
+  box-shadow: 4px 4px 0 0 rgba(17, 17, 17, 1);
+}
+
+.tv-neo-shadow {
+  box-shadow: 4px 4px 0 0 var(--brand-orange);
+}
+
+.tv-ticket-shadow {
+  box-shadow: 12px 12px 0 0 var(--on-surface);
+}
+
+.tv-ticket-perforation {
+  background-image: radial-gradient(circle, transparent 70%, var(--background) 75%);
+  background-size: 20px 20px;
+  background-position: -10px center;
+  background-repeat: repeat-y;
+}
+
+.tv-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand-orange) color-mix(in oklab, var(--background), black 4%);
+}
+
+.tv-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.tv-scrollbar::-webkit-scrollbar-track {
+  background: color-mix(in oklab, var(--background), black 4%);
+}
+
+.tv-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--brand-orange);
+  border: 2px solid color-mix(in oklab, var(--background), black 4%);
+  background-clip: border-box;
+}
+
+.tv-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklab, var(--brand-orange), black 10%);
+}
+
+.tv-grayscale-hover {
+  filter: grayscale(100%);
+  transition: filter 0.3s ease;
+}
+
+.tv-grayscale-hover:hover {
+  filter: grayscale(0%);
 }
 
 .markdown :where(p) {

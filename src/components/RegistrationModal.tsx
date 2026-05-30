@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { ArrowLeft, Check, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/cn'
+import { createPortal } from 'react-dom'
 
 type FieldType = 'text' | 'email' | 'tel' | 'number' | 'select' | 'textarea'
 type Step = 'personal' | 'professional' | 'final' | 'ticket'
@@ -19,46 +20,7 @@ type Question = {
   placeholder?: string
 }
 
-function StepPill(props: {
-  label: string
-  active: boolean
-  done: boolean
-  onClick?: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={props.onClick}
-      className={cn(
-        'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold transition-colors',
-        props.active
-          ? 'border-[color:var(--brand)] bg-[color:color-mix(in_oklab,var(--brand),white_88%)] text-[color:var(--brand)]'
-          : 'border-[color:var(--stroke)] bg-white text-[color:var(--ink-muted)] hover:bg-[color:var(--paper-muted)]',
-      )}
-    >
-      {props.done ? (
-        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[color:var(--brand)] text-white">
-          <Check className="h-3 w-3" aria-hidden="true" />
-        </span>
-      ) : (
-        <span className="h-2 w-2 rounded-full bg-[color:var(--stroke-strong)]" />
-      )}
-      {props.label}
-    </button>
-  )
-}
-
-function inputClassName() {
-  return 'h-10 w-full rounded-lg border border-[color:var(--stroke)] bg-white px-3 text-sm text-[color:var(--ink)] shadow-sm outline-none placeholder:text-[color:var(--ink-muted)] focus:border-[color:var(--brand)] focus:ring-2 focus:ring-[color:color-mix(in_oklab,var(--brand),white_70%)]'
-}
-
-function textareaClassName() {
-  return 'min-h-28 w-full rounded-lg border border-[color:var(--stroke)] bg-white px-3 py-2 text-sm text-[color:var(--ink)] shadow-sm outline-none placeholder:text-[color:var(--ink-muted)] focus:border-[color:var(--brand)] focus:ring-2 focus:ring-[color:color-mix(in_oklab,var(--brand),white_70%)]'
-}
-
 function keyToStructuredKey(key: string) {
-  // Keys are stored in DB for default questions.
-  // We map to the payload expected by the RSVP endpoint.
   switch (key) {
     case 'full_name':
       return 'fullName'
@@ -83,6 +45,43 @@ function keyToStructuredKey(key: string) {
   }
 }
 
+function inputClassName() {
+  return 'w-full border-[3px] border-[color:var(--on-background)] bg-white p-3 sm:p-4 font-display text-[16px] sm:text-[20px] font-semibold uppercase tracking-tight text-[color:var(--on-background)] outline-none placeholder:text-[color:var(--surface-dim)] transition-shadow focus:shadow-[6px_6px_0px_0px_#1b1c1b]'
+}
+
+function textareaClassName() {
+  return 'min-h-32 sm:min-h-36 w-full border-[3px] border-[color:var(--on-background)] bg-white p-3 sm:p-4 font-display text-[16px] sm:text-[20px] font-semibold uppercase tracking-tight text-[color:var(--on-background)] outline-none placeholder:text-[color:var(--surface-dim)] transition-shadow focus:shadow-[6px_6px_0px_0px_#1b1c1b]'
+}
+
+function StepBlock(props: {
+  index: number
+  label: string
+  active: boolean
+  onClick: () => void
+  rightBorder?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      className={cn(
+        'p-4 text-left transition-colors',
+        props.rightBorder ? 'border-r-[3px] border-[color:var(--on-background)]' : null,
+        props.active
+          ? 'bg-[color:var(--brand-orange)] text-white'
+          : 'bg-[color:var(--surface-container-low)] text-[color:var(--on-surface-variant)] hover:bg-[color:var(--surface-container-high)]',
+      )}
+    >
+      <span className={cn('text-xs font-bold uppercase tracking-[0.1em]', props.active ? 'opacity-80' : 'opacity-60')}>
+        STEP {String(props.index + 1).padStart(2, '0')}
+      </span>
+      <span className="mt-1 block text-[14px] font-bold uppercase tracking-tight">
+        {props.label}
+      </span>
+    </button>
+  )
+}
+
 export function RegistrationModal(props: {
   eventSlug: string
   title: string
@@ -93,10 +92,7 @@ export function RegistrationModal(props: {
   const [step, setStep] = useState<Step>('personal')
   const [questions, setQuestions] = useState<Question[]>([])
   const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [ticket, setTicket] = useState<{
-    ticketId: string
-    createdAt: string
-  } | null>(null)
+  const [ticket, setTicket] = useState<{ ticketId: string; createdAt: string } | null>(null)
   const [loadErr, setLoadErr] = useState<string>('')
   const [submitErr, setSubmitErr] = useState<string>('')
   const [isPending, startTransition] = useTransition()
@@ -114,13 +110,17 @@ export function RegistrationModal(props: {
     return by
   }, [questions])
 
-  const steps: Step[] = ['personal', 'professional', 'final', 'ticket']
+  const primarySteps: Step[] = ['personal', 'professional', 'final']
+  const activePrimaryStep: Step = step === 'ticket' ? 'final' : step
 
-  const isDone = (s: Step) => {
-    if (s === 'ticket') return ticket != null
-    const idx = steps.indexOf(step)
-    return steps.indexOf(s) < idx
-  }
+  const stepTitle =
+    step === 'personal'
+      ? 'Personal Details'
+      : step === 'professional'
+        ? 'Professional Details'
+        : step === 'final'
+          ? 'Goals'
+          : 'Confirmation'
 
   const currentQuestions = useMemo(() => {
     if (step === 'ticket') return []
@@ -133,6 +133,46 @@ export function RegistrationModal(props: {
       .filter((q) => q.required)
       .filter((q) => (answers[q.id] ?? '').trim() === '')
   }, [answers, currentQuestions, step])
+
+  const canNext = missingRequired.length === 0 && currentQuestions.length > 0
+  const ticketId = ticket?.ticketId ?? '—'
+
+  function setValue(id: string, value: string) {
+    setAnswers((prev) => ({ ...prev, [id]: value }))
+  }
+
+  function next() {
+    if (!canNext) return
+    if (step === 'personal') setStep('professional')
+    else if (step === 'professional') setStep('final')
+    else if (step === 'final') setStep('ticket')
+  }
+
+  async function submit() {
+    setSubmitErr('')
+    startTransition(async () => {
+      const structured: Record<string, string> = {}
+      for (const q of questions) {
+        const key = q.key ? keyToStructuredKey(q.key) : null
+        if (!key) continue
+        structured[key] = (answers[q.id] ?? '').trim()
+      }
+
+      const res = await fetch(`/api/events/${props.eventSlug}/rsvps`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ structured, answers }),
+      })
+
+      const json = (await res.json().catch(() => null)) as any
+      if (!res.ok) {
+        setSubmitErr(json?.error ?? 'Could not submit RSVP.')
+        return
+      }
+
+      setTicket({ ticketId: String(json.ticketId), createdAt: String(json.createdAt) })
+    })
+  }
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -153,142 +193,104 @@ export function RegistrationModal(props: {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const res = await fetch(`/api/events/${props.eventSlug}/form`)
-      const json = (await res.json().catch(() => null)) as any
-      if (!res.ok) {
+      setLoadErr('')
+      try {
+        const res = await fetch(`/api/events/${props.eventSlug}/form`)
+        const json = (await res.json().catch(() => null)) as any
+        if (!res.ok) throw new Error(json?.error ?? 'Could not load RSVP form.')
         if (cancelled) return
-        setLoadErr(json?.error ?? 'Could not load RSVP form.')
-        return
+        setQuestions((json?.questions ?? []) as Question[])
+      } catch (err: any) {
+        if (cancelled) return
+        setLoadErr(err?.message ?? 'Could not load RSVP form.')
       }
-      const qs = (json?.questions ?? []) as Question[]
-      if (cancelled) return
-      setQuestions(qs)
-      const initial: Record<string, string> = {}
-      for (const q of qs) initial[q.id] = ''
-      setAnswers(initial)
     })()
     return () => {
       cancelled = true
     }
   }, [props.eventSlug])
 
-  const setValue = (id: string, v: string) => {
-    setAnswers((prev) => ({ ...prev, [id]: v }))
-  }
+  const modal = (
+    <div
+      className="fixed inset-0 z-[1000]"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) props.onClose()
+      }}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-black/45" />
 
-  const canNext = step === 'ticket' ? false : missingRequired.length === 0
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[760px] items-center justify-center p-2 sm:p-6">
+        <div
+          className="relative w-full max-h-[calc(100vh-24px)] overflow-visible border-[3px] border-[color:var(--on-background)] bg-white tv-neo-shadow sm:max-h-[calc(100vh-64px)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="pointer-events-none absolute right-0 top-0 z-30 hidden translate-x-[18%] -translate-y-[20%] rotate-12 border-[3px] border-[color:var(--on-background)] bg-[color:var(--primary)] px-4 py-2 text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--on-primary)] md:block">
+            LIMITED ACCESS
+          </div>
 
-  const next = () => {
-    if (step === 'personal') return setStep('professional')
-    if (step === 'professional') return setStep('final')
-    if (step === 'final') return setStep('ticket')
-  }
+          <button
+            type="button"
+            onClick={props.onClose}
+            aria-label="Close modal"
+            className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center border-[3px] border-[color:var(--on-background)] bg-white text-[color:var(--on-background)] transition-all hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#1b1c1b] active:translate-x-0 active:translate-y-0 active:shadow-none"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
 
-  const back = () => {
-    if (step === 'professional') return setStep('personal')
-    if (step === 'final') return setStep('professional')
-    if (step === 'ticket') return setStep('final')
-  }
+          <div className="sticky top-0 z-10 grid grid-cols-3 border-b-[3px] border-[color:var(--on-background)]">
+            <StepBlock
+              index={0}
+              label="PERSONAL"
+              active={activePrimaryStep === 'personal'}
+              onClick={() => setStep('personal')}
+              rightBorder
+            />
+            <StepBlock
+              index={1}
+              label="PROFESSIONAL"
+              active={activePrimaryStep === 'professional'}
+              onClick={() => setStep('professional')}
+              rightBorder
+            />
+            <StepBlock
+              index={2}
+              label="GOALS"
+              active={activePrimaryStep === 'final'}
+              onClick={() => setStep('final')}
+            />
+          </div>
 
-  const submit = () => {
-    setSubmitErr('')
-    startTransition(async () => {
-      // Build structured payload from keys.
-      const structured: any = {}
-      for (const q of questions) {
-        if (!q.key) continue
-        const sk = keyToStructuredKey(q.key)
-        if (!sk) continue
-        structured[sk] = (answers[q.id] ?? '').trim()
-      }
-
-      const res = await fetch(`/api/events/${props.eventSlug}/rsvps`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ structured, answers }),
-      })
-      const json = (await res.json().catch(() => null)) as any
-      if (!res.ok) {
-        setSubmitErr(json?.error ?? 'Could not submit RSVP.')
-        return
-      }
-      setTicket({ ticketId: String(json.ticketId), createdAt: String(json.createdAt) })
-    })
-  }
-
-  return (
-    <div className="fixed inset-0 z-50">
-      <button
-        type="button"
-        aria-label="Close modal"
-        onClick={props.onClose}
-        className="absolute inset-0 bg-black/45"
-      />
-
-      <div className="relative mx-auto flex min-h-screen max-w-[980px] items-center justify-center p-4 sm:p-8">
-        <div className="tv-card w-full overflow-hidden shadow-xl">
-          <div className="flex items-center justify-between gap-3 border-b border-[color:var(--stroke)] bg-[color:var(--paper-muted)] px-5 py-4">
-            <div className="min-w-0">
-              <div className="tv-kicker text-[10px] font-semibold text-[color:var(--ink-muted)]">
+          <div className="tv-scrollbar relative max-h-[calc(100vh-110px)] overflow-y-auto overflow-x-hidden p-4 sm:max-h-[calc(100vh-150px)] sm:p-8">
+            <div className="mb-8">
+              <div className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--on-surface-variant)]">
                 {props.dateStr} · {props.timeStr}
               </div>
-              <div className="truncate text-sm font-semibold text-[color:var(--ink)]">
+              <div className="mt-2 text-[18px] font-semibold text-[color:var(--on-background)] sm:text-[20px]">
                 {props.title}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={props.onClose}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--stroke)] bg-white text-[color:var(--ink)] shadow-sm transition-colors hover:bg-[color:var(--paper-muted)]"
-            >
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </div>
 
-          <div className="px-5 pt-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <StepPill
-                label="Personal"
-                active={step === 'personal'}
-                done={isDone('personal')}
-                onClick={() => setStep('personal')}
-              />
-              <StepPill
-                label="Professional"
-                active={step === 'professional'}
-                done={isDone('professional')}
-                onClick={() => setStep('professional')}
-              />
-              <StepPill
-                label="Final"
-                active={step === 'final'}
-                done={isDone('final')}
-                onClick={() => setStep('final')}
-              />
-              <StepPill
-                label="Ticket"
-                active={step === 'ticket'}
-                done={ticket != null}
-                onClick={() => setStep('ticket')}
-              />
-            </div>
-          </div>
-
-          <div className="px-5 pb-5 pt-4">
             {loadErr ? (
-              <div className="rounded-xl border border-rose-600/30 bg-rose-500/10 p-3 text-sm text-rose-900">
+              <div className="border-[3px] border-[color:var(--on-background)] bg-[color:var(--surface-container-low)] p-4 text-sm text-[color:var(--on-background)]">
                 {loadErr}
               </div>
             ) : null}
 
             {step !== 'ticket' ? (
               <div>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <h2 className="font-display text-[22px] font-extrabold uppercase text-[color:var(--on-background)] sm:text-[28px]">
+                    {stepTitle}
+                  </h2>
+                  <div className="h-1 w-12 bg-[color:var(--brand-orange)]" />
+                </div>
+
+                <div className="mt-8 grid grid-cols-1 gap-6">
                   {currentQuestions.map((q) => (
-                    <div key={q.id} className={q.fieldType === 'textarea' ? 'sm:col-span-2' : ''}>
-                      <label className="mb-1 block text-xs font-semibold text-[color:var(--ink-muted)]">
+                    <div key={q.id} className="group flex flex-col gap-1">
+                      <label className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--on-background)] group-focus-within:text-[color:var(--brand-orange)]">
                         {q.label}
-                        {q.required ? <span className="text-[color:var(--brand)]"> *</span> : null}
+                        {q.required ? <span className="text-[color:var(--brand-orange)]"> *</span> : null}
                       </label>
 
                       {q.fieldType === 'select' ? (
@@ -297,7 +299,7 @@ export function RegistrationModal(props: {
                           onChange={(e) => setValue(q.id, e.target.value)}
                           className={inputClassName()}
                         >
-                          <option value="">Select…</option>
+                          <option value="">Select...</option>
                           {(q.options ?? []).map((opt) => (
                             <option key={opt} value={opt}>
                               {opt}
@@ -325,123 +327,142 @@ export function RegistrationModal(props: {
                 </div>
 
                 {submitErr ? (
-                  <div className="mt-5 rounded-xl border border-rose-600/30 bg-rose-500/10 p-3 text-sm text-rose-900">
+                  <div className="mt-6 border-[3px] border-rose-700 bg-rose-500/10 p-4 text-sm text-rose-900">
                     {submitErr}
                   </div>
                 ) : null}
+
+                <div className="mt-8">
+                  <button
+                    type="button"
+                    onClick={next}
+                    disabled={!canNext || questions.length === 0}
+                    className="group flex w-full items-center justify-center gap-4 border-[3px] border-[color:var(--on-background)] bg-[color:var(--brand-orange)] py-6 font-display text-[28px] font-extrabold uppercase text-white transition-all hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#1b1c1b] active:translate-x-0 active:translate-y-0 active:shadow-none disabled:opacity-45"
+                  >
+                    Continue
+                    <span className="material-symbols-outlined font-bold transition-transform group-hover:translate-x-1">
+                      arrow_forward
+                    </span>
+                  </button>
+                </div>
               </div>
             ) : null}
 
             {step === 'ticket' ? (
-              <div className="grid gap-4 md:grid-cols-[1fr_1fr] md:items-start">
-                <div className="tv-card tv-card-muted p-5 shadow-sm">
-                  <div className="text-sm font-semibold text-[color:var(--ink)]">
-                    Your ticket
-                  </div>
-                  <div className="mt-2 text-sm text-[color:var(--ink-muted)]">
-                    {ticket ? 'Booking confirmed.' : 'Submit the form to generate a ticket.'}
-                  </div>
-
-                  <div className="mt-4 tv-divider" />
-
-                  <div className="mt-4 space-y-2 text-sm">
-                    <div>
-                      <div className="text-xs font-semibold text-[color:var(--ink-muted)]">
-                        Ticket ID
-                      </div>
-                      <div className="mt-1 font-semibold text-[color:var(--ink)]">
-                        {ticket ? ticket.ticketId : '—'}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-[color:var(--ink-muted)]">
-                        Event
-                      </div>
-                      <div className="mt-1 font-semibold text-[color:var(--ink)]">
-                        {props.title}
-                      </div>
-                      <div className="mt-1 text-xs text-[color:var(--ink-muted)]">
-                        {props.dateStr} · {props.timeStr}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 tv-divider" />
-
-                  <div className="mt-4 text-xs text-[color:var(--ink-muted)]">
-                    Tip: keep this ticket id for entry verification.
-                  </div>
+              <div>
+                <div className="space-y-2">
+                  <h2 className="font-display text-[22px] font-extrabold uppercase text-[color:var(--on-background)] sm:text-[28px]">
+                    Ticket
+                  </h2>
+                  <div className="h-1 w-12 bg-[color:var(--brand-orange)]" />
                 </div>
 
-                <div className="tv-card p-5 shadow-sm">
-                  <div className="text-sm font-semibold text-[color:var(--ink)]">
-                    Confirm &amp; book
-                  </div>
-                  <div className="mt-2 text-sm text-[color:var(--ink-muted)]">
-                    We store your details in the local SQL database for this demo.
+                <div className="mt-8 grid gap-6">
+                  <div className="tv-ticket-shadow overflow-hidden border-2 border-[color:var(--on-background)] bg-[color:var(--surface)]">
+                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_2px_220px]">
+                      <div className="p-6">
+                        <div className="flex items-start justify-between gap-6">
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--primary)]">
+                              Admit one
+                            </p>
+                            <h3 className="mt-3 font-display text-[28px] font-extrabold uppercase tracking-tighter text-[color:var(--on-background)]">
+                              {props.title}
+                            </h3>
+                            <p className="mt-3 text-[16px] text-[color:var(--on-surface-variant)]">
+                              {props.dateStr} · {props.timeStr}
+                            </p>
+                          </div>
+                          <div className="hidden lg:block text-right">
+                            <p className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--on-surface-variant)]">
+                              Status
+                            </p>
+                            <p className="mt-2 text-[16px] font-semibold uppercase text-[color:var(--on-background)]">
+                              {ticket ? 'Registered' : 'Pending'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div className="border-2 border-[color:var(--on-background)] bg-[color:var(--surface-container-low)] p-4">
+                            <div className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--primary)]">
+                              Ticket ID
+                            </div>
+                            <div className="mt-2 text-[16px] font-semibold uppercase tracking-widest text-[color:var(--on-background)]">
+                              {ticketId}
+                            </div>
+                          </div>
+                          <div className="border-2 border-[color:var(--on-background)] bg-[color:var(--surface-container-low)] p-4">
+                            <div className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--primary)]">
+                              Access level
+                            </div>
+                            <div className="mt-2 text-[16px] font-semibold uppercase text-[color:var(--on-background)]">
+                              Full broadcast
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="relative hidden lg:block overflow-hidden bg-[color:var(--on-background)]">
+                        <div className="absolute inset-y-0 left-[-10px] w-5 tv-ticket-perforation opacity-20" />
+                      </div>
+
+                      <div className="relative border-t-2 border-[color:var(--on-background)] p-6 lg:border-t-0">
+                        <div className="absolute left-0 right-0 top-[-10px] h-5 tv-ticket-perforation rotate-90 opacity-20 lg:hidden" />
+                        <div className="text-center">
+                          <p className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--on-surface-variant)]">
+                            Admit one
+                          </p>
+                          <div className="mx-auto mt-4 h-40 w-40 bg-[color:var(--on-background)] p-1">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              alt="QR code"
+                              src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-09xssiYGylD1KiL6BcOWz8E7GJnSHt1t0LXe03mLXSqnawhMErW_7ILjaLgtJfk-dpf8AwZFBgDQSen-NVemT88B8hBGZZCtFkhb3hpuW04TmORz6fOi921dS264x00gR8x9TQZMYY75SPBPYCL_Jzx54WVfz0NwPemldSvduhyGly4W4feTJFmyjGA-dJUMQkBC7v76lm6iTMECTFXbBMhuv46aZ2lONpwWCpbvIGnJk78-BYma7pU8q2ep1bSr1e_O3qZ1w0ei"
+                              className="h-full w-full object-cover grayscale invert"
+                            />
+                          </div>
+                          <p className="mt-4 text-[14px] font-semibold uppercase tracking-widest text-[color:var(--on-background)]">
+                            ID: {ticketId}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <button
                     type="button"
                     disabled={isPending || ticket != null}
                     onClick={submit}
-                    className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-full bg-[color:var(--brand)] px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[color:var(--brand-600)] disabled:opacity-45"
+                    className="group flex w-full items-center justify-center gap-4 border-[3px] border-[color:var(--on-background)] bg-[color:var(--brand-orange)] py-6 font-display text-[28px] font-extrabold uppercase text-white transition-all hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#1b1c1b] active:translate-x-0 active:translate-y-0 active:shadow-none disabled:opacity-45"
                   >
-                    {ticket ? 'Booked' : isPending ? 'Booking…' : 'Complete booking'}
+                    {ticket ? 'Registered' : isPending ? 'Submitting...' : 'Register Now'}
+                    <span className="material-symbols-outlined font-bold transition-transform group-hover:translate-x-1">
+                      arrow_forward
+                    </span>
                   </button>
 
-                  {ticket ? (
-                    <button
-                      type="button"
-                      onClick={props.onClose}
-                      className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-full border border-[color:var(--stroke)] bg-white px-6 text-sm font-semibold text-[color:var(--ink)] shadow-sm transition-colors hover:bg-[color:var(--paper-muted)]"
-                    >
-                      Close
-                    </button>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={props.onClose}
+                    className="w-full border-[3px] border-[color:var(--on-background)] bg-white py-4 text-[15px] font-bold uppercase tracking-[0.1em] text-[color:var(--on-background)] transition-all hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#1b1c1b] active:translate-x-0 active:translate-y-0 active:shadow-none"
+                  >
+                    Close
+                  </button>
 
                   {submitErr ? (
-                    <div className="mt-4 rounded-xl border border-rose-600/30 bg-rose-500/10 p-3 text-sm text-rose-900">
+                    <div className="border-[3px] border-rose-700 bg-rose-500/10 p-4 text-sm text-rose-900">
                       {submitErr}
                     </div>
                   ) : null}
                 </div>
               </div>
             ) : null}
-          </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-[color:var(--stroke)] bg-white px-5 py-4">
-            <div className="text-xs font-semibold text-[color:var(--ink-muted)]">
-              {missingRequired.length > 0
-                ? `Missing ${missingRequired.length} required field(s)`
-                : 'All set'}
-            </div>
-            <div className="flex items-center gap-2">
-              {step !== 'personal' ? (
-                <button
-                  type="button"
-                  onClick={back}
-                  className="inline-flex h-10 items-center justify-center rounded-full border border-[color:var(--stroke)] bg-white px-4 text-sm font-semibold text-[color:var(--ink)] shadow-sm transition-colors hover:bg-[color:var(--paper-muted)]"
-                >
-                  <ArrowLeft className="mr-1 h-4 w-4" aria-hidden="true" />
-                  Back
-                </button>
-              ) : null}
-
-              {step !== 'ticket' ? (
-                <button
-                  type="button"
-                  onClick={next}
-                  disabled={!canNext || questions.length === 0}
-                  className="inline-flex h-10 items-center justify-center rounded-full bg-[color:var(--brand)] px-5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[color:var(--brand-600)] disabled:opacity-45"
-                >
-                  Next
-                </button>
-              ) : null}
-            </div>
           </div>
         </div>
       </div>
     </div>
   )
+  if (typeof document === 'undefined') return null
+  return createPortal(modal, document.body)
 }
