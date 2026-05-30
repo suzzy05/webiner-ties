@@ -12,83 +12,70 @@ export function WebinarRegisterCard(props: {
   priceLabel: string
   badge?: string
   footnote?: string
+  ctaLabel?: string
+  href?: string
   className?: string
 }) {
   const [isOpen, setIsOpen] = useState(false)
+  const ctaLabel = props.ctaLabel ?? 'Next Step'
+  const href = props.href ?? null
 
   return (
     <>
       <div
         className={cn(
-          'border-2 border-[color:var(--on-background)] bg-[color:var(--surface)] p-6 shadow-[8px_8px_0px_0px_rgba(141,23,0,1)]',
+          'overflow-hidden rounded-[28px] border border-white/10 bg-[color:var(--surface-container-highest)]',
           props.className,
         )}
       >
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--on-surface-variant)]">
-              Price
-            </p>
-            <h2 className="mt-2 font-display text-[36px] font-extrabold uppercase tracking-tighter text-[color:var(--primary)]">
-              {props.priceLabel}
-            </h2>
+        <div className="px-6 pb-6 pt-6">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="h-1 rounded-full bg-[color:var(--ink-highlight)]" />
+            <div className="h-1 rounded-full bg-white/10" />
+            <div className="h-1 rounded-full bg-white/10" />
           </div>
-          {props.badge ? (
-            <div className="bg-[color:var(--primary-container)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--on-primary)]">
-              {props.badge}
-            </div>
-          ) : null}
-        </div>
 
-        <div className="mb-6 space-y-4">
-          <div className="flex items-center gap-4">
-            <span className="material-symbols-outlined text-[color:var(--primary)]">
-              calendar_today
-            </span>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--on-surface-variant)]">
-                Date
-              </p>
-              <p className="text-[16px] font-bold text-[color:var(--on-background)]">
-                {props.dateLine}
-              </p>
+          <h3 className="mt-6 text-xl font-semibold text-[color:var(--ink)]">Personal Info</h3>
+          <p className="mt-1 text-sm text-[color:var(--ink-muted)]">Let&apos;s start with the basics.</p>
+
+          <div className="mt-6 space-y-4">
+            <div className="rounded-2xl border border-white/10 bg-[color:var(--card)] px-4 py-3 text-sm text-[color:var(--ink-muted)]">
+              Enter your full name
             </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="material-symbols-outlined text-[color:var(--primary)]">
-              schedule
-            </span>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--on-surface-variant)]">
-                Time
-              </p>
-              <p className="text-[16px] font-bold text-[color:var(--on-background)]">
-                {props.timeLine}
-              </p>
+            <div className="rounded-2xl border border-white/10 bg-[color:var(--card)] px-4 py-3 text-sm text-[color:var(--ink-muted)]">
+              Enter your email
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-[color:var(--card)] px-4 py-3 text-sm text-[color:var(--ink-muted)]">
+              Include country code (e.g. +91)
             </div>
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            setIsOpen(true)
-          }}
-          className="group flex w-full items-center justify-center gap-4 border-2 border-[color:var(--on-background)] bg-[color:var(--secondary-container)] py-6 text-[20px] font-semibold uppercase text-[color:var(--on-secondary-fixed)] shadow-[4px_4px_0px_0px_rgba(27,28,27,1)] transition-all duration-300 hover:bg-[color:var(--primary)] hover:text-[color:var(--on-primary)] active:shadow-none"
-        >
-          Register Now
-          <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">
-            arrow_forward
-          </span>
-        </button>
-
-        {props.footnote ? (
-          <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--on-surface-variant)] opacity-60">
-            {props.footnote}
-          </p>
-        ) : null}
+        <div className="border-t border-white/10 bg-black/10 px-6 py-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="tv-label">Ticket price</div>
+              <div className="mt-1 text-lg font-semibold text-[color:var(--ink)]">{props.priceLabel}</div>
+            </div>
+            {href ? (
+              <a href={href} className="tv-btn tv-btn-primary px-7 py-3">
+                {ctaLabel}
+              </a>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setIsOpen(true)
+                }}
+                className="tv-btn tv-btn-primary px-7 py-3"
+              >
+                {ctaLabel}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {isOpen ? (

@@ -2,8 +2,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { formatInTimeZone } from 'date-fns-tz'
 import { getEventBySlug, listEvents } from '@/server/events'
+import { listAttendeesForEvent } from '@/server/rsvps'
 import { WebinarDetailTabs } from '@/components/WebinarDetailTabs'
-import { WebinarRegisterCard } from '@/components/WebinarRegisterCard'
+import { AttendWebinarCard } from '@/components/AttendWebinarCard'
 import { GoogleMapEmbed } from '@/components/GoogleMapEmbed'
 
 const fallbackCover =
@@ -24,15 +25,15 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
   if (!event) {
     return (
       <main className="mx-auto w-full max-w-6xl px-4 py-16 sm:px-6 lg:px-0">
-        <h1 className="font-display text-[28px] font-extrabold uppercase tracking-tighter text-[color:var(--on-background)]">
+        <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--ink)]">
           Webinar not found
         </h1>
-        <p className="mt-4 text-[16px] text-[color:var(--on-surface-variant)]">
+        <p className="mt-4 text-[16px] text-[color:var(--ink-muted)]">
           That webinar doesn&apos;t exist or is not published.
         </p>
         <Link
           href="/discover"
-          className="mt-8 inline-flex border-b-2 border-[color:var(--primary)] pb-1 text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--primary)]"
+          className="mt-8 inline-flex text-sm font-medium text-[color:var(--ink-highlight)] hover:opacity-90"
         >
           Back to explore
         </Link>
@@ -45,11 +46,6 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
   const tz = event.timezone
   const showMap = event.venueType !== 'ONLINE' && Boolean(event.locationText)
 
-  const statusLabel =
-    startAt.getTime() <= now.getTime() && (!endAt || endAt.getTime() > now.getTime())
-      ? 'LIVE'
-      : 'UPCOMING'
-
   const dateLine = formatInTimeZone(startAt, tz, 'MMMM d, yyyy').toUpperCase()
   const startTimeStr = formatInTimeZone(startAt, tz, 'HH:mm')
   const endTimeStr = endAt ? formatInTimeZone(endAt, tz, 'HH:mm') : null
@@ -59,8 +55,6 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
 
   const priceLabel = 'FREE'
   const badge = 'FREE ACCESS'
-
-  const series = event.tagList[0] ? `SERIES: ${event.tagList[0].toUpperCase()}` : 'SERIES: WEBINARS'
 
   const details = [
     { label: 'Venue', value: event.venueType === 'ONLINE' ? 'Online' : event.venueType === 'IN_PERSON' ? 'In person' : 'Hybrid' },
@@ -73,32 +67,66 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
     .filter((e) => e.slug !== event.slug)
     .slice(0, 3)
 
+  const attendees = await listAttendeesForEvent(event.id, 12)
+
+  const attendeeInitials = (name: string) => {
+    const cleaned = name.trim()
+    if (!cleaned) return '?'
+    const parts = cleaned.split(/\s+/).filter(Boolean)
+    const first = parts[0]?.[0] ?? '?'
+    const second = parts.length > 1 ? parts[parts.length - 1]?.[0] : ''
+    return `${first}${second}`.toUpperCase()
+  }
+
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-0">
-      <div className="grid grid-cols-12 gap-6 items-start">
+    <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-8 sm:px-6 lg:px-0">
+      {/* ─── Ambient background driven by poster colors ─── */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        {/* Poster image blurred and tinted — the ambient source */}
+        <Image
+          alt=""
+          src={event.coverImageUrl ?? fallbackCover}
+          fill
+          className="object-cover blur-[80px] opacity-20 saturate-200 scale-110"
+          sizes="100vw"
+          priority={false}
+        />
+        {/* Dark overlay with warm crown glow at top */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#09090b]/60 via-[#09090b]/80 to-[#09090b]/97" />
+        {/* Warm gold top accent — matches brand */}
+        <div className="absolute inset-x-0 top-0 h-[380px] bg-[radial-gradient(ellipse_90%_55%_at_50%_-10%,rgba(228,213,160,0.11),transparent_65%)]" />
+        {/* Soft edge vignette */}
+        <div className="absolute inset-0 shadow-[inset_0_0_120px_40px_rgba(9,9,11,0.85)]" />
+      </div>
+
+      <div className="grid grid-cols-12 items-start gap-6">
         <div className="col-span-12 md:col-span-8">
-          <div className="relative aspect-[16/9] w-full overflow-hidden border-2 border-[color:var(--on-background)] bg-[color:var(--surface-container-highest)]">
+          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[28px] border border-white/10 bg-[color:var(--card)]">
             <Image
               alt={event.title}
               src={event.coverImageUrl ?? fallbackCover}
               fill
-              className="object-cover grayscale transition-all duration-700 ease-in-out hover:grayscale-0"
+              className="object-cover transition-all duration-700 ease-in-out hover:scale-[1.01]"
               sizes="(min-width: 1024px) 66vw, 100vw"
               priority
             />
-            <div className="absolute right-0 top-0 flex items-center gap-2 bg-[color:var(--secondary-container)] px-6 py-2 text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--on-secondary-fixed)]">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-[color:var(--on-secondary-fixed)]" />
-              {statusLabel}
-            </div>
           </div>
 
-          <div className="-mt-10 relative z-10 max-w-[90%] border-2 border-[color:var(--on-background)] bg-[color:var(--background)] p-6 md:max-w-[80%]">
-            <p className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--primary)]">
-              {series}
-            </p>
-            <h1 className="mt-3 font-display text-[44px] font-extrabold uppercase leading-none tracking-tighter text-[color:var(--on-background)] sm:text-[64px]">
+          <div className="mt-6 rounded-[28px] border border-white/8 bg-[color:var(--card)]/90 p-6 backdrop-blur-sm">
+            <p className="tv-label">{event.tagList[0]?.toUpperCase() ?? 'WEBINAR'}</p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[color:var(--ink)] sm:text-5xl">
               {event.title}
             </h1>
+            <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-[color:var(--ink-muted)]">
+              <span className="inline-flex items-center gap-2 rounded-lg border border-white/07 bg-white/04 px-3 py-1.5">
+                <span className="material-symbols-outlined text-[16px] text-[color:var(--accent)]">event</span>
+                {dateLine}
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-lg border border-white/07 bg-white/04 px-3 py-1.5">
+                <span className="material-symbols-outlined text-[16px] text-[color:var(--accent)]">schedule</span>
+                {timeLine}
+              </span>
+            </div>
           </div>
 
           <div className="mt-10 pb-10">
@@ -109,24 +137,24 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
                 name: event.organizer.name.toUpperCase(),
                 title: `HOST, ${event.organizer.name.toUpperCase()}`,
               }}
+              className="tv-card rounded-[28px] p-6"
             />
           </div>
         </div>
 
         <aside className="col-span-12 space-y-6 md:col-span-4 md:sticky md:top-[100px]">
-          <WebinarRegisterCard
+          <AttendWebinarCard
             eventSlug={event.slug}
             title={event.title}
             dateLine={dateLine}
             timeLine={timeLine}
-            priceLabel={priceLabel}
-            badge={badge}
-            footnote="INCLUDES SESSION RECORDING & FOLLOW-UP EMAIL"
+            venueType={event.venueType}
+            locationText={event.locationText}
           />
 
           {showMap && event.locationText ? (
-            <div className="border-2 border-[color:var(--on-background)] bg-[color:var(--surface-container-low)] p-4">
-              <h5 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.1em]">
+            <div className="rounded-[28px] border border-white/10 bg-[color:var(--card)] p-4">
+              <h5 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[color:var(--ink)]">
                 <span className="material-symbols-outlined text-[16px]">location_on</span>
                 Location
               </h5>
@@ -140,46 +168,74 @@ export default async function Page(props: { params: Promise<{ slug: string }> })
             </div>
           ) : null}
 
-          <div className="border-2 border-[color:var(--on-background)] bg-[color:var(--surface-container-low)] p-4">
-            <h5 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.1em]">
+          <div className="rounded-[28px] border border-white/10 bg-[color:var(--card)] p-4">
+            <h5 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[color:var(--ink)]">
               <span className="material-symbols-outlined text-[16px]">group</span>
-              Network Stats
+              Attendees
             </h5>
-            <div className="flex items-center gap-2">
-              <div className="flex -space-x-2">
-                <div className="h-8 w-8 rounded-full border border-[color:var(--on-background)] bg-slate-300" />
-                <div className="h-8 w-8 rounded-full border border-[color:var(--on-background)] bg-slate-400" />
-                <div className="h-8 w-8 rounded-full border border-[color:var(--on-background)] bg-slate-500" />
+            {attendees.length ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <div className="flex -space-x-2">
+                    {attendees.slice(0, 5).map((a) => (
+                      <div
+                        key={`${a.createdAt}-${a.fullName}`}
+                        title={a.fullName}
+                        className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-[color:var(--surface-container-high)] text-[11px] font-semibold text-[color:var(--ink)]"
+                      >
+                        {attendeeInitials(a.fullName)}
+                      </div>
+                    ))}
+                  </div>
+                  <span className="text-sm font-medium text-[color:var(--ink-muted)]">
+                    {Number(event._count.rsvps ?? 0)} attending
+                  </span>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {attendees.slice(0, 10).map((a) => (
+                    <div
+                      key={`row-${a.createdAt}-${a.fullName}`}
+                      className="flex items-center justify-between rounded-2xl border border-white/10 bg-[color:var(--card)] px-3 py-2"
+                    >
+                      <div className="min-w-0 text-sm font-medium text-[color:var(--ink)]">
+                        <span className="truncate">{a.fullName}</span>
+                      </div>
+                      <span className="tv-label shrink-0 pl-3">RSVP</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="rounded-2xl border border-white/10 bg-[color:var(--surface-container-highest)] p-4 text-sm text-[color:var(--ink-muted)]">
+                Be the first to RSVP.
               </div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.08em]">
-                +{Math.max(12, Number(event._count.rsvps ?? 0))} Attending
-              </span>
-            </div>
+            )}
           </div>
         </aside>
       </div>
 
-      <section className="mt-10 border-t-2 border-[color:var(--on-background)] pt-10">
-        <h2 className="mb-10 inline-block border-b-4 border-[color:var(--primary)] font-display text-[28px] font-extrabold uppercase tracking-tighter">
+      <section className="mt-10 border-t border-white/10 pt-10">
+        <h2 className="mb-10 text-xl font-semibold text-[color:var(--ink)]">
           Upcoming Webinars
         </h2>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {upcoming.map((item) => (
             <Link key={item.slug} href={`/events/${item.slug}`} className="group">
-              <div className="relative mb-4 aspect-video overflow-hidden border border-[color:var(--on-background)] bg-[color:var(--surface-container-high)]">
+              <div className="relative mb-4 aspect-video overflow-hidden rounded-[22px] border border-white/10 bg-[color:var(--card)]">
                 <Image
                   alt={item.title}
                   src={item.coverImageUrl ?? fallbackCover}
                   fill
                   sizes="(min-width: 1024px) 33vw, 100vw"
-                  className="object-cover grayscale transition-all duration-500 group-hover:grayscale-0"
+                  className="object-cover transition-all duration-500 group-hover:scale-[1.01]"
                 />
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[color:var(--primary)]">
+              <span className="tv-label">
                 {item.tagList[0]?.toUpperCase() ?? 'WEBINAR'}
               </span>
-              <h3 className="mt-2 text-[20px] font-semibold uppercase tracking-tight text-[color:var(--on-background)] transition-colors group-hover:text-[color:var(--primary)]">
+              <h3 className="mt-2 text-[18px] font-semibold text-[color:var(--ink)] transition-colors group-hover:text-[color:var(--ink-highlight)]">
                 {item.title}
               </h3>
             </Link>

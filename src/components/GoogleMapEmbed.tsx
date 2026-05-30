@@ -35,8 +35,8 @@ export function GoogleMapEmbed(props: {
   const variant = props.variant ?? 'soft'
   const frameClassName =
     variant === 'hard'
-      ? 'overflow-hidden border-2 border-[color:var(--on-background)] bg-[color:var(--surface-container-high)]'
-      : 'overflow-hidden rounded-2xl border border-[color:var(--stroke)] shadow-sm'
+      ? 'overflow-hidden rounded-[22px] border border-white/10 bg-[color:var(--card)]'
+      : 'overflow-hidden rounded-[22px] border border-white/10 bg-[color:var(--card)]'
 
   return (
     <div className={props.className}>
@@ -58,8 +58,8 @@ export function GoogleMapEmbed(props: {
         rel="noreferrer"
         className={
           variant === 'hard'
-            ? 'mt-2 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--primary)] hover:underline'
-            : 'mt-2 inline-flex items-center gap-1 text-xs font-medium text-[color:var(--brand)] hover:underline'
+            ? 'mt-2 inline-flex items-center gap-1 text-sm font-medium text-[color:var(--ink-highlight)] hover:opacity-90'
+            : 'mt-2 inline-flex items-center gap-1 text-sm font-medium text-[color:var(--ink-highlight)] hover:opacity-90'
         }
       >
         View on Google Maps →

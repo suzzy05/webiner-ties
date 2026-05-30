@@ -1,76 +1,34 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { cn } from '@/lib/cn'
 import { Container } from './Container'
+import { HeaderClock } from './HeaderClock'
 
 export function SiteHeader() {
-  const [scrolled, setScrolled] = useState(false)
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20)
-    onScroll()
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
-
   return (
-    <header
-      className={cn(
-        'sticky top-0 z-30 border-b-2 border-[color:var(--on-background)] bg-[color:var(--background)]',
-        scrolled ? 'tv-hard-shadow-sm' : null,
-      )}
-    >
-      <Container className="flex items-center justify-between py-4">
-        <Link
-          href="/"
-          className="flex items-baseline gap-3"
-        >
-          <span className="[font-family:var(--font-logo)] text-[20px] font-bold tracking-tight text-[color:var(--on-background)] sm:text-[22px]">
-            <span className="text-[color:var(--on-background)]">.</span>
-            <span className="text-[color:var(--primary)]">ties</span>
-            <span className="text-[color:var(--on-background)]">verse</span>
-          </span>
-          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--on-background)] opacity-70">
-            Events
+    <header className="sticky top-0 z-50 border-b border-white/07 bg-[#09090b]/75 backdrop-blur-xl backdrop-saturate-150">
+      {/* Top accent line */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[color:var(--accent)]/30 to-transparent" />
+
+      <Container className="flex items-center justify-between py-3.5">
+        <Link href="/" className="flex items-center gap-2 group">
+          <span className="tv-header-logo">
+            <span className="tv-header-logo-dot">.</span>tiesverse
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-10 md:flex">
-          <Link
-            href="/discover"
-            className="border-b-2 border-[color:var(--primary)] pb-1 text-[15px] font-semibold text-[color:var(--primary)]"
-          >
-            Explore
-          </Link>
-          <Link
-            href="/discover"
-            className="pb-1 text-[15px] font-semibold text-[color:var(--on-background)] opacity-70 hover:text-[color:var(--primary)]"
-          >
-            Schedule
-          </Link>
-          <Link
-            href="/organizers/tiesverse"
-            className="pb-1 text-[15px] font-semibold text-[color:var(--on-background)] opacity-70 hover:text-[color:var(--primary)]"
-          >
-            Network
-          </Link>
-        </nav>
-
-        <div className="flex items-center gap-4">
-          <Link
-            href="/admin"
-            className="tv-hard-shadow-sm hidden select-none items-center bg-[color:var(--primary)] px-6 py-2 text-[15px] font-semibold text-[color:var(--on-primary)] active:translate-x-[2px] active:translate-y-[2px] lg:inline-flex"
-          >
-            Host a Webinar
-          </Link>
-          <span className="material-symbols-outlined cursor-pointer text-[color:var(--on-background)]">
-            search
-          </span>
-          <span className="material-symbols-outlined cursor-pointer text-[color:var(--on-background)] md:hidden">
-            menu
-          </span>
+        <div className="flex items-center gap-5">
+          <div className="hidden sm:block">
+            <HeaderClock />
+          </div>
+          <nav className="flex items-center gap-2">
+            <Link
+              className="rounded-lg px-3.5 py-2 text-sm font-medium text-[color:var(--ink-muted)] transition-colors hover:text-[color:var(--ink)] hover:bg-white/05"
+              href="/"
+            >
+              Discover
+            </Link>
+          </nav>
         </div>
       </Container>
     </header>

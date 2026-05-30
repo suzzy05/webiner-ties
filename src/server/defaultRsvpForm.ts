@@ -1,12 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-export type RsvpFieldType =
-  | 'text'
-  | 'email'
-  | 'tel'
-  | 'number'
-  | 'select'
-  | 'textarea'
+export type RsvpFieldType = 'text' | 'email' | 'tel' | 'number' | 'select' | 'textarea'
 
 export type RsvpStep = 'personal' | 'professional' | 'final'
 
@@ -25,12 +19,10 @@ export type RsvpQuestionInput = {
 /**
  * Default RSVP questions requested by you.
  *
- * The admin can add more questions per event via `/admin`, but these serve as a
- * sensible baseline for most webinars.
+ * These serve as a sensible baseline for most webinars.
  */
 export function buildDefaultRsvpQuestions(): RsvpQuestionInput[] {
   return [
-    // Step 1: Personal details
     {
       id: randomUUID(),
       step: 'personal',
@@ -62,7 +54,6 @@ export function buildDefaultRsvpQuestions(): RsvpQuestionInput[] {
       placeholder: '+91…',
     },
 
-    // Step 2: Professional details
     {
       id: randomUUID(),
       step: 'professional',
@@ -71,16 +62,7 @@ export function buildDefaultRsvpQuestions(): RsvpQuestionInput[] {
       label: 'Current role',
       fieldType: 'select',
       required: true,
-      options: [
-        'Student',
-        'Developer',
-        'Designer',
-        'Founder',
-        'Product',
-        'Marketing',
-        'Research',
-        'Other',
-      ],
+      options: ['Student', 'Developer', 'Designer', 'Founder', 'Product', 'Marketing', 'Research', 'Other'],
     },
     {
       id: randomUUID(),
@@ -113,7 +95,6 @@ export function buildDefaultRsvpQuestions(): RsvpQuestionInput[] {
       placeholder: 'Bengaluru',
     },
 
-    // Step 3: Final details
     {
       id: randomUUID(),
       step: 'final',
@@ -122,15 +103,7 @@ export function buildDefaultRsvpQuestions(): RsvpQuestionInput[] {
       label: 'How did you hear about us?',
       fieldType: 'select',
       required: true,
-      options: [
-        'Instagram',
-        'LinkedIn',
-        'WhatsApp group',
-        'Friend / referral',
-        'Community',
-        'Search',
-        'Other',
-      ],
+      options: ['Instagram', 'LinkedIn', 'WhatsApp group', 'Friend / referral', 'Community', 'Search', 'Other'],
     },
     {
       id: randomUUID(),
@@ -144,3 +117,4 @@ export function buildDefaultRsvpQuestions(): RsvpQuestionInput[] {
     },
   ]
 }
+

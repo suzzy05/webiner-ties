@@ -16,13 +16,13 @@ export function TagChips(props: {
       {shown.map((t) => (
         <span
           key={t}
-          className="rounded-full border border-[color:var(--stroke)] bg-[color:var(--paper-muted)] px-2.5 py-1 text-xs text-[color:var(--ink-muted)]"
+          className="rounded-full border border-[color:var(--stroke)] bg-[color:var(--card)] px-2.5 py-1 text-xs text-[color:var(--ink-muted)]"
         >
           {t}
         </span>
       ))}
       {remaining > 0 ? (
-        <span className="rounded-full border border-[color:var(--stroke)] bg-[color:var(--paper-muted)] px-2.5 py-1 text-xs text-[color:var(--ink-muted)]">
+        <span className="rounded-full border border-[color:var(--stroke)] bg-[color:var(--card)] px-2.5 py-1 text-xs text-[color:var(--ink-muted)]">
           +{remaining}
         </span>
       ) : null}

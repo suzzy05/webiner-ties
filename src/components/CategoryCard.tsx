@@ -13,19 +13,19 @@ export function CategoryCard(props: { category: Category; className?: string }) 
     <Link
       href={`/discover?tag=${encodeURIComponent(props.category.discoverTag ?? props.category.key)}`}
       className={cn(
-        'tv-card tv-card-muted flex items-center gap-4 px-5 py-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md',
+        'tv-card tv-card-hover flex items-center gap-4 rounded-[22px] px-5 py-4 transition-all hover:-translate-y-0.5',
         props.className,
       )}
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white ring-1 ring-[color:var(--stroke)]">
-        <Icon className="h-5 w-5 text-[color:var(--brand)]" aria-hidden="true" />
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[color:var(--surface-container-highest)]">
+        <Icon className="h-5 w-5 text-[color:var(--ink-highlight)]" aria-hidden="true" />
       </div>
       <div className="min-w-0">
         <div className="text-sm font-semibold text-[color:var(--ink)]">
           {props.category.title}
         </div>
         <div className="mt-0.5 truncate text-xs text-[color:var(--ink-muted)]">
-          Explore {props.category.title.toLowerCase()} events
+          Browse {props.category.title.toLowerCase()}
         </div>
       </div>
     </Link>

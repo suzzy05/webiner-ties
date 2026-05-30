@@ -21,7 +21,7 @@ export function RegisterButton(props: {
 
   return (
     <>
-      <div className={cn('tv-card tv-card-muted p-5 shadow-sm', props.className)}>
+      <div className={cn('tv-card rounded-[24px] p-5', props.className)}>
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="tv-kicker text-[10px] font-semibold text-[color:var(--ink-muted)]">
@@ -39,7 +39,7 @@ export function RegisterButton(props: {
               e.stopPropagation()
               setIsOpen(true)
             }}
-            className="rounded-full border border-[color:var(--brand)] bg-white px-6 py-2.5 text-sm font-semibold text-[color:var(--brand)] shadow-sm transition-colors hover:bg-[color:color-mix(in_oklab,var(--brand),white_85%)]"
+            className="tv-btn tv-btn-primary px-6 py-2.5"
           >
             Register
           </button>

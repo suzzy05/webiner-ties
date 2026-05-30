@@ -20,10 +20,10 @@ export function WebinarDetailTabs(props: {
       type="button"
       onClick={() => setTab(key)}
       className={cn(
-        'px-6 py-4 text-[15px] font-semibold uppercase border-b-4 transition-all',
+        'px-6 py-4 text-sm font-semibold border-b-2 transition-all',
         tab === key
-          ? 'border-[color:var(--primary)] text-[color:var(--primary)]'
-          : 'border-transparent text-[color:var(--on-surface-variant)] hover:text-[color:var(--primary)]',
+          ? 'border-[color:var(--ink-highlight)] text-[color:var(--ink)]'
+          : 'border-transparent text-[color:var(--ink-muted)] hover:text-[color:var(--ink)]',
       )}
     >
       {label}
@@ -40,7 +40,7 @@ export function WebinarDetailTabs(props: {
 
   return (
     <div className={props.className}>
-      <div className="flex border-b-2 border-[color:var(--outline-editorial)]">
+      <div className="flex border-b border-white/10">
         {tabButton('desc', 'Description')}
         {tabButton('details', 'Details')}
         {tabButton('speakers', 'Speakers')}
@@ -48,7 +48,7 @@ export function WebinarDetailTabs(props: {
 
       {tab === 'desc' ? (
         <div className="mt-6 space-y-6 animate-in fade-in duration-500">
-          <div className="text-[18px] leading-relaxed text-[color:var(--on-surface-variant)]">
+          <div className="text-[16px] leading-relaxed text-[color:var(--ink-muted)]">
             <ReactMarkdown>{props.descriptionMd}</ReactMarkdown>
           </div>
         </div>
@@ -60,12 +60,12 @@ export function WebinarDetailTabs(props: {
             {normalizedDetails.map((item) => (
               <div
                 key={item.label}
-                className="flex items-start justify-between gap-6 border-b border-[color:var(--outline-editorial)] py-4"
+                className="flex items-start justify-between gap-6 border-b border-white/10 py-4"
               >
-                <span className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--on-surface-variant)]">
+                <span className="tv-label">
                   {item.label}
                 </span>
-                <span className="text-[16px] font-semibold text-[color:var(--on-background)]">
+                <span className="text-[16px] font-semibold text-[color:var(--ink)]">
                   {item.value}
                 </span>
               </div>
@@ -77,12 +77,12 @@ export function WebinarDetailTabs(props: {
       {tab === 'speakers' ? (
         <div className="mt-6 animate-in fade-in duration-500">
           <div className="flex items-center gap-6">
-            <div className="h-24 w-24 flex-none overflow-hidden border-2 border-[color:var(--on-background)] bg-[color:var(--surface-container-high)]" />
+            <div className="h-24 w-24 flex-none overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--card)]" />
             <div>
-              <div className="text-[20px] font-semibold uppercase tracking-tight text-[color:var(--on-background)]">
+              <div className="text-[18px] font-semibold text-[color:var(--ink)]">
                 {props.speaker.name}
               </div>
-              <div className="mt-2 text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--primary)]">
+              <div className="mt-2 text-sm font-medium text-[color:var(--ink-muted)]">
                 {props.speaker.title}
               </div>
             </div>

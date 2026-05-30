@@ -29,21 +29,21 @@ export default async function Page({
   const events = await listEvents({ q, tag, venue, take: 60 })
 
   return (
-    <Container className="py-10">
-      <h1 className="tv-display text-2xl font-semibold text-[color:var(--ink)]">
-        Browse events
+    <Container className="py-12">
+      <h1 className="text-4xl font-semibold tracking-tight text-[color:var(--ink)]">
+        Discover Events
       </h1>
-      <p className="mt-1 text-sm text-[color:var(--ink-muted)]">
-        Search events and webinars by title, tags, and venue type.
+      <p className="mt-3 max-w-2xl text-base leading-relaxed text-[color:var(--ink-muted)]">
+        Browse upcoming Tiesverse webinars and events.
       </p>
 
-      <div className="tv-card tv-card-muted mt-6 p-5 shadow-sm">
+      <div className="tv-card mt-8 rounded-[24px] p-5">
         <DiscoverControls />
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {events.length === 0 ? (
-          <div className="tv-card tv-card-muted p-8 text-sm text-[color:var(--ink-muted)]">
+          <div className="tv-card rounded-[24px] p-8 text-sm text-[color:var(--ink-muted)]">
             No results. Try clearing filters or searching a different tag.
           </div>
         ) : (

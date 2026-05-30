@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, useTransition } from 'react'
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { createPortal } from 'react-dom'
@@ -22,62 +22,55 @@ type Question = {
 
 function keyToStructuredKey(key: string) {
   switch (key) {
-    case 'full_name':
-      return 'fullName'
-    case 'email':
-      return 'email'
-    case 'whatsapp':
-      return 'whatsapp'
-    case 'role':
-      return 'role'
-    case 'org':
-      return 'org'
-    case 'country':
-      return 'country'
-    case 'city':
-      return 'city'
-    case 'heard_from':
-      return 'heardFrom'
-    case 'hope_to_learn':
-      return 'hopeToLearn'
-    default:
-      return null
+    case 'full_name': return 'fullName'
+    case 'email': return 'email'
+    case 'whatsapp': return 'whatsapp'
+    case 'role': return 'role'
+    case 'org': return 'org'
+    case 'country': return 'country'
+    case 'city': return 'city'
+    case 'heard_from': return 'heardFrom'
+    case 'hope_to_learn': return 'hopeToLearn'
+    default: return null
   }
 }
 
-function inputClassName() {
-  return 'w-full border-[3px] border-[color:var(--on-background)] bg-white p-3 sm:p-4 font-display text-[16px] sm:text-[20px] font-semibold uppercase tracking-tight text-[color:var(--on-background)] outline-none placeholder:text-[color:var(--surface-dim)] transition-shadow focus:shadow-[6px_6px_0px_0px_#1b1c1b]'
+function inputClassName() { return 'tv-input' }
+function textareaClassName() { return 'tv-input h-auto min-h-32 py-3' }
+
+/** Simple deterministic barcode from a string value */
+function TicketBarcode({ value }: { value: string }) {
+  const chars = value.replace(/\s/g, '').slice(0, 28)
+  const segments: Array<{ isBar: boolean; w: number }> = [{ isBar: false, w: 4 }]
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars.charCodeAt(i)
+    segments.push({ isBar: true, w: (c % 3) + 1 })
+    segments.push({ isBar: false, w: ((c >> 2) % 2) + 1 })
+  }
+  segments.push({ isBar: false, w: 4 })
+  const totalW = segments.reduce((s, seg) => s + seg.w, 0)
+  let x = 0
+  const bars: Array<{ x: number; w: number }> = []
+  for (const seg of segments) {
+    if (seg.isBar) bars.push({ x, w: seg.w })
+    x += seg.w
+  }
+  return (
+    <svg width="100%" height="52" viewBox={`0 0 ${totalW} 44`} preserveAspectRatio="none" aria-hidden="true">
+      {bars.map((b, i) => <rect key={i} x={b.x} y={0} width={b.w} height={44} fill="#111" />)}
+    </svg>
+  )
 }
 
-function textareaClassName() {
-  return 'min-h-32 sm:min-h-36 w-full border-[3px] border-[color:var(--on-background)] bg-white p-3 sm:p-4 font-display text-[16px] sm:text-[20px] font-semibold uppercase tracking-tight text-[color:var(--on-background)] outline-none placeholder:text-[color:var(--surface-dim)] transition-shadow focus:shadow-[6px_6px_0px_0px_#1b1c1b]'
-}
-
-function StepBlock(props: {
-  index: number
-  label: string
-  active: boolean
-  onClick: () => void
-  rightBorder?: boolean
-}) {
+function StepBlock(props: { index: number; label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={props.onClick}
-      className={cn(
-        'p-4 text-left transition-colors',
-        props.rightBorder ? 'border-r-[3px] border-[color:var(--on-background)]' : null,
-        props.active
-          ? 'bg-[color:var(--brand-orange)] text-white'
-          : 'bg-[color:var(--surface-container-low)] text-[color:var(--on-surface-variant)] hover:bg-[color:var(--surface-container-high)]',
-      )}
+      className={cn('rsvp-step-btn', props.active ? 'active' : null)}
     >
-      <span className={cn('text-xs font-bold uppercase tracking-[0.1em]', props.active ? 'opacity-80' : 'opacity-60')}>
-        STEP {String(props.index + 1).padStart(2, '0')}
-      </span>
-      <span className="mt-1 block text-[14px] font-bold uppercase tracking-tight">
-        {props.label}
-      </span>
+      <span className="rsvp-step-num">{props.index + 1}</span>
+      {props.label}
     </button>
   )
 }
@@ -89,6 +82,7 @@ export function RegistrationModal(props: {
   timeStr: string
   onClose: () => void
 }) {
+  const [isShown, setIsShown] = useState(false)
   const [step, setStep] = useState<Step>('personal')
   const [questions, setQuestions] = useState<Question[]>([])
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -114,13 +108,10 @@ export function RegistrationModal(props: {
   const activePrimaryStep: Step = step === 'ticket' ? 'final' : step
 
   const stepTitle =
-    step === 'personal'
-      ? 'Personal Details'
-      : step === 'professional'
-        ? 'Professional Details'
-        : step === 'final'
-          ? 'Goals'
-          : 'Confirmation'
+    step === 'personal' ? 'Personal Details'
+    : step === 'professional' ? 'Professional Details'
+    : step === 'final' ? 'Goals'
+    : 'Confirmation'
 
   const currentQuestions = useMemo(() => {
     if (step === 'ticket') return []
@@ -129,13 +120,21 @@ export function RegistrationModal(props: {
 
   const missingRequired = useMemo(() => {
     if (step === 'ticket') return []
-    return currentQuestions
-      .filter((q) => q.required)
-      .filter((q) => (answers[q.id] ?? '').trim() === '')
+    return currentQuestions.filter((q) => q.required).filter((q) => (answers[q.id] ?? '').trim() === '')
   }, [answers, currentQuestions, step])
 
   const canNext = missingRequired.length === 0 && currentQuestions.length > 0
   const ticketId = ticket?.ticketId ?? '—'
+
+  const attendeeName = useMemo(() => {
+    const q = questions.find((q) => q.key === 'full_name')
+    return q ? (answers[q.id] ?? '').trim() : ''
+  }, [questions, answers])
+
+  const attendeeEmail = useMemo(() => {
+    const q = questions.find((q) => q.key === 'email')
+    return q ? (answers[q.id] ?? '').trim() : ''
+  }, [questions, answers])
 
   function setValue(id: string, value: string) {
     setAnswers((prev) => ({ ...prev, [id]: value }))
@@ -145,8 +144,13 @@ export function RegistrationModal(props: {
     if (!canNext) return
     if (step === 'personal') setStep('professional')
     else if (step === 'professional') setStep('final')
-    else if (step === 'final') setStep('ticket')
+    else if (step === 'final') submit()
   }
+
+  const requestClose = useCallback(() => {
+    setIsShown(false)
+    window.setTimeout(() => props.onClose(), 220)
+  }, [props.onClose])
 
   async function submit() {
     setSubmitErr('')
@@ -157,38 +161,37 @@ export function RegistrationModal(props: {
         if (!key) continue
         structured[key] = (answers[q.id] ?? '').trim()
       }
-
       const res = await fetch(`/api/events/${props.eventSlug}/rsvps`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ structured, answers }),
       })
-
       const json = (await res.json().catch(() => null)) as any
       if (!res.ok) {
         setSubmitErr(json?.error ?? 'Could not submit RSVP.')
         return
       }
-
       setTicket({ ticketId: String(json.ticketId), createdAt: String(json.createdAt) })
+      setStep('ticket')
     })
   }
 
   useEffect(() => {
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prev
-    }
+    return () => { document.body.style.overflow = prev }
   }, [])
 
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') props.onClose()
-    }
+    const onKeyDown = (e: KeyboardEvent) => { if (e.key === 'Escape') requestClose() }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [props])
+  }, [requestClose])
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setIsShown(true), 10)
+    return () => window.clearTimeout(id)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -205,256 +208,200 @@ export function RegistrationModal(props: {
         setLoadErr(err?.message ?? 'Could not load RSVP form.')
       }
     })()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [props.eventSlug])
 
   const modal = (
     <div
       className="fixed inset-0 z-[1000]"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) props.onClose()
-      }}
+      onClick={(e) => { if (e.target === e.currentTarget) requestClose() }}
     >
-      <div className="pointer-events-none absolute inset-0 bg-black/45" />
+      <div className="pointer-events-none absolute inset-0 bg-black/65" />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[760px] items-center justify-center p-2 sm:p-6">
+      <div className="relative flex min-h-screen w-full items-stretch justify-end p-0 sm:p-4">
         <div
-          className="relative w-full max-h-[calc(100vh-24px)] overflow-visible border-[3px] border-[color:var(--on-background)] bg-white tv-neo-shadow sm:max-h-[calc(100vh-64px)]"
+          className={cn(
+            'relative w-full max-h-[100vh] overflow-hidden rounded-none border border-white/10 bg-[color:var(--card)] shadow-[0_24px_80px_rgba(0,0,0,0.70)] transition-transform duration-300 ease-out sm:max-h-[calc(100vh-32px)] sm:rounded-[28px] sm:w-[520px]',
+            isShown ? 'translate-x-0' : 'translate-x-full',
+          )}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="pointer-events-none absolute right-0 top-0 z-30 hidden translate-x-[18%] -translate-y-[20%] rotate-12 border-[3px] border-[color:var(--on-background)] bg-[color:var(--primary)] px-4 py-2 text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--on-primary)] md:block">
-            LIMITED ACCESS
-          </div>
-
+          {/* Close button */}
           <button
             type="button"
-            onClick={props.onClose}
+            onClick={requestClose}
             aria-label="Close modal"
-            className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center border-[3px] border-[color:var(--on-background)] bg-white text-[color:var(--on-background)] transition-all hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#1b1c1b] active:translate-x-0 active:translate-y-0 active:shadow-none"
+            className="absolute right-4 top-4 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/30 text-[color:var(--ink)] transition-colors hover:bg-black/50"
           >
             <X className="h-4 w-4" aria-hidden="true" />
           </button>
 
-          <div className="sticky top-0 z-10 grid grid-cols-3 border-b-[3px] border-[color:var(--on-background)]">
-            <StepBlock
-              index={0}
-              label="PERSONAL"
-              active={activePrimaryStep === 'personal'}
-              onClick={() => setStep('personal')}
-              rightBorder
-            />
-            <StepBlock
-              index={1}
-              label="PROFESSIONAL"
-              active={activePrimaryStep === 'professional'}
-              onClick={() => setStep('professional')}
-              rightBorder
-            />
-            <StepBlock
-              index={2}
-              label="GOALS"
-              active={activePrimaryStep === 'final'}
-              onClick={() => setStep('final')}
-            />
-          </div>
-
-          <div className="tv-scrollbar relative max-h-[calc(100vh-110px)] overflow-y-auto overflow-x-hidden p-4 sm:max-h-[calc(100vh-150px)] sm:p-8">
-            <div className="mb-8">
-              <div className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--on-surface-variant)]">
-                {props.dateStr} · {props.timeStr}
-              </div>
-              <div className="mt-2 text-[18px] font-semibold text-[color:var(--on-background)] sm:text-[20px]">
-                {props.title}
-              </div>
+          {/* Step tabs — hidden on ticket confirmation */}
+          {step !== 'ticket' ? (
+            <div className="rsvp-steps sticky top-0 z-10">
+              <StepBlock index={0} label="PERSONAL" active={activePrimaryStep === 'personal'} onClick={() => setStep('personal')} />
+              <StepBlock index={1} label="PROFESSIONAL" active={activePrimaryStep === 'professional'} onClick={() => setStep('professional')} />
+              <StepBlock index={2} label="GOALS" active={activePrimaryStep === 'final'} onClick={() => setStep('final')} />
             </div>
+          ) : null}
 
-            {loadErr ? (
-              <div className="border-[3px] border-[color:var(--on-background)] bg-[color:var(--surface-container-low)] p-4 text-sm text-[color:var(--on-background)]">
-                {loadErr}
-              </div>
-            ) : null}
+          {/* Scrollable content */}
+          <div className="tv-scrollbar relative max-h-[100vh] overflow-y-auto overflow-x-hidden p-5 sm:p-8" style={{ maxHeight: step === 'ticket' ? '100vh' : 'calc(100vh - 56px)' }}>
 
+            {/* ── Form steps ── */}
             {step !== 'ticket' ? (
               <div>
-                <div className="space-y-2">
-                  <h2 className="font-display text-[22px] font-extrabold uppercase text-[color:var(--on-background)] sm:text-[28px]">
-                    {stepTitle}
-                  </h2>
-                  <div className="h-1 w-12 bg-[color:var(--brand-orange)]" />
+                <div className="mb-2 text-sm text-[color:var(--ink-muted)]">{props.dateStr}</div>
+                <div className="mb-8 text-[18px] font-semibold text-[color:var(--ink)] sm:text-[20px]">{props.title}</div>
+
+                {loadErr ? (
+                  <div className="rsvp-error mb-6">
+                    <span className="material-symbols-outlined text-[18px]">error</span>
+                    <span>{loadErr}</span>
+                  </div>
+                ) : null}
+
+                <div className="space-y-2 mb-8">
+                  <h2 className="text-2xl font-semibold text-[color:var(--ink)] sm:text-3xl">{stepTitle}</h2>
+                  <div className="h-[2px] w-10 rounded-full bg-[color:var(--accent)]" />
                 </div>
 
-                <div className="mt-8 grid grid-cols-1 gap-6">
+                <div className="grid grid-cols-1 gap-5">
                   {currentQuestions.map((q) => (
-                    <div key={q.id} className="group flex flex-col gap-1">
-                      <label className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--on-background)] group-focus-within:text-[color:var(--brand-orange)]">
+                    <div key={q.id} className="rsvp-field">
+                      <label>
                         {q.label}
-                        {q.required ? <span className="text-[color:var(--brand-orange)]"> *</span> : null}
+                        {q.required ? <span className="rsvp-required">*</span> : null}
                       </label>
-
                       {q.fieldType === 'select' ? (
-                        <select
-                          value={answers[q.id] ?? ''}
-                          onChange={(e) => setValue(q.id, e.target.value)}
-                          className={inputClassName()}
-                        >
+                        <select value={answers[q.id] ?? ''} onChange={(e) => setValue(q.id, e.target.value)} className={inputClassName()}>
                           <option value="">Select...</option>
-                          {(q.options ?? []).map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
+                          {(q.options ?? []).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
                       ) : q.fieldType === 'textarea' ? (
-                        <textarea
-                          value={answers[q.id] ?? ''}
-                          onChange={(e) => setValue(q.id, e.target.value)}
-                          className={textareaClassName()}
-                          placeholder={q.placeholder}
-                        />
+                        <textarea value={answers[q.id] ?? ''} onChange={(e) => setValue(q.id, e.target.value)} className={textareaClassName()} placeholder={q.placeholder} />
                       ) : (
-                        <input
-                          value={answers[q.id] ?? ''}
-                          onChange={(e) => setValue(q.id, e.target.value)}
-                          type={q.fieldType === 'tel' ? 'tel' : q.fieldType}
-                          className={inputClassName()}
-                          placeholder={q.placeholder}
-                        />
+                        <input value={answers[q.id] ?? ''} onChange={(e) => setValue(q.id, e.target.value)} type={q.fieldType === 'tel' ? 'tel' : q.fieldType} className={inputClassName()} placeholder={q.placeholder} />
                       )}
+                      {missingRequired.some((m) => m.id === q.id) ? (
+                        <div className="text-xs text-[color:var(--accent)]">This field is required</div>
+                      ) : null}
                     </div>
                   ))}
                 </div>
 
                 {submitErr ? (
-                  <div className="mt-6 border-[3px] border-rose-700 bg-rose-500/10 p-4 text-sm text-rose-900">
-                    {submitErr}
+                  <div className="rsvp-error mt-6">
+                    <span className="material-symbols-outlined text-[18px]">error</span>
+                    <span>{submitErr}</span>
                   </div>
                 ) : null}
 
-                <div className="mt-8">
+                <div className="mt-8 flex flex-col gap-3">
+                  {/* Back button on non-first steps */}
+                  {step !== 'personal' ? (
+                    <button
+                      type="button"
+                      onClick={() => setStep(primarySteps[Math.max(0, primarySteps.indexOf(step) - 1)] ?? 'personal')}
+                      disabled={isPending}
+                      className="tv-btn w-full py-3.5 disabled:opacity-50"
+                    >
+                      Back
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={next}
-                    disabled={!canNext || questions.length === 0}
-                    className="group flex w-full items-center justify-center gap-4 border-[3px] border-[color:var(--on-background)] bg-[color:var(--brand-orange)] py-6 font-display text-[28px] font-extrabold uppercase text-white transition-all hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#1b1c1b] active:translate-x-0 active:translate-y-0 active:shadow-none disabled:opacity-45"
+                    disabled={!canNext || questions.length === 0 || isPending}
+                    className="tv-btn tv-btn-primary w-full py-3.5 disabled:opacity-40"
                   >
-                    Continue
-                    <span className="material-symbols-outlined font-bold transition-transform group-hover:translate-x-1">
-                      arrow_forward
-                    </span>
+                    {isPending ? (
+                      <>
+                        <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                        Submitting…
+                      </>
+                    ) : step === 'final' ? (
+                      <>
+                        <span className="material-symbols-outlined text-[18px]">bolt</span>
+                        Register Now
+                      </>
+                    ) : (
+                      <>
+                        Continue
+                        <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
             ) : null}
 
-            {step === 'ticket' ? (
-              <div>
-                <div className="space-y-2">
-                  <h2 className="font-display text-[22px] font-extrabold uppercase text-[color:var(--on-background)] sm:text-[28px]">
-                    Ticket
-                  </h2>
-                  <div className="h-1 w-12 bg-[color:var(--brand-orange)]" />
-                </div>
+            {/* ── Ticket confirmation ── */}
+            {step === 'ticket' && ticket ? (
+              <div className="flex flex-col items-center pt-4 pb-2">
+                {/* White physical ticket card */}
+                <div className="tv-ticket-card w-full max-w-sm">
+                  {/* Header section */}
+                  <div className="tv-ticket-section text-center">
+                    <div className="text-4xl mb-3">🎉</div>
+                    <h2 className="text-[22px] font-bold text-[#0d0d0d] tracking-tight">Thank you!</h2>
+                    <p className="mt-1 text-[13px] text-[rgba(0,0,0,0.5)]">Your ticket has been issued successfully</p>
+                  </div>
 
-                <div className="mt-8 grid gap-6">
-                  <div className="tv-ticket-shadow overflow-hidden border-2 border-[color:var(--on-background)] bg-[color:var(--surface)]">
-                    <div className="grid grid-cols-1 lg:grid-cols-[1fr_2px_220px]">
-                      <div className="p-6">
-                        <div className="flex items-start justify-between gap-6">
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--primary)]">
-                              Admit one
-                            </p>
-                            <h3 className="mt-3 font-display text-[28px] font-extrabold uppercase tracking-tighter text-[color:var(--on-background)]">
-                              {props.title}
-                            </h3>
-                            <p className="mt-3 text-[16px] text-[color:var(--on-surface-variant)]">
-                              {props.dateStr} · {props.timeStr}
-                            </p>
-                          </div>
-                          <div className="hidden lg:block text-right">
-                            <p className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--on-surface-variant)]">
-                              Status
-                            </p>
-                            <p className="mt-2 text-[16px] font-semibold uppercase text-[color:var(--on-background)]">
-                              {ticket ? 'Registered' : 'Pending'}
-                            </p>
-                          </div>
-                        </div>
+                  <hr className="tv-ticket-dashes" />
 
-                        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                          <div className="border-2 border-[color:var(--on-background)] bg-[color:var(--surface-container-low)] p-4">
-                            <div className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--primary)]">
-                              Ticket ID
-                            </div>
-                            <div className="mt-2 text-[16px] font-semibold uppercase tracking-widest text-[color:var(--on-background)]">
-                              {ticketId}
-                            </div>
-                          </div>
-                          <div className="border-2 border-[color:var(--on-background)] bg-[color:var(--surface-container-low)] p-4">
-                            <div className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--primary)]">
-                              Access level
-                            </div>
-                            <div className="mt-2 text-[16px] font-semibold uppercase text-[color:var(--on-background)]">
-                              Full broadcast
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="relative hidden lg:block overflow-hidden bg-[color:var(--on-background)]">
-                        <div className="absolute inset-y-0 left-[-10px] w-5 tv-ticket-perforation opacity-20" />
-                      </div>
-
-                      <div className="relative border-t-2 border-[color:var(--on-background)] p-6 lg:border-t-0">
-                        <div className="absolute left-0 right-0 top-[-10px] h-5 tv-ticket-perforation rotate-90 opacity-20 lg:hidden" />
-                        <div className="text-center">
-                          <p className="text-xs font-bold uppercase tracking-[0.1em] text-[color:var(--on-surface-variant)]">
-                            Admit one
-                          </p>
-                          <div className="mx-auto mt-4 h-40 w-40 bg-[color:var(--on-background)] p-1">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              alt="QR code"
-                              src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-09xssiYGylD1KiL6BcOWz8E7GJnSHt1t0LXe03mLXSqnawhMErW_7ILjaLgtJfk-dpf8AwZFBgDQSen-NVemT88B8hBGZZCtFkhb3hpuW04TmORz6fOi921dS264x00gR8x9TQZMYY75SPBPYCL_Jzx54WVfz0NwPemldSvduhyGly4W4feTJFmyjGA-dJUMQkBC7v76lm6iTMECTFXbBMhuv46aZ2lONpwWCpbvIGnJk78-BYma7pU8q2ep1bSr1e_O3qZ1w0ei"
-                              className="h-full w-full object-cover grayscale invert"
-                            />
-                          </div>
-                          <p className="mt-4 text-[14px] font-semibold uppercase tracking-widest text-[color:var(--on-background)]">
-                            ID: {ticketId}
-                          </p>
-                        </div>
-                      </div>
+                  {/* Ticket ID + Amount */}
+                  <div className="tv-ticket-section grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="tv-ticket-label">Ticket ID</div>
+                      <div className="tv-ticket-value text-[13px]">{ticketId}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="tv-ticket-label">Amount</div>
+                      <div className="tv-ticket-value">FREE</div>
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    disabled={isPending || ticket != null}
-                    onClick={submit}
-                    className="group flex w-full items-center justify-center gap-4 border-[3px] border-[color:var(--on-background)] bg-[color:var(--brand-orange)] py-6 font-display text-[28px] font-extrabold uppercase text-white transition-all hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#1b1c1b] active:translate-x-0 active:translate-y-0 active:shadow-none disabled:opacity-45"
-                  >
-                    {ticket ? 'Registered' : isPending ? 'Submitting...' : 'Register Now'}
-                    <span className="material-symbols-outlined font-bold transition-transform group-hover:translate-x-1">
-                      arrow_forward
-                    </span>
-                  </button>
+                  <hr className="tv-ticket-dashes" />
 
-                  <button
-                    type="button"
-                    onClick={props.onClose}
-                    className="w-full border-[3px] border-[color:var(--on-background)] bg-white py-4 text-[15px] font-bold uppercase tracking-[0.1em] text-[color:var(--on-background)] transition-all hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_#1b1c1b] active:translate-x-0 active:translate-y-0 active:shadow-none"
-                  >
-                    Close
-                  </button>
-
-                  {submitErr ? (
-                    <div className="border-[3px] border-rose-700 bg-rose-500/10 p-4 text-sm text-rose-900">
-                      {submitErr}
+                  {/* Attendee + Status */}
+                  <div className="tv-ticket-section grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="tv-ticket-label">Attendee</div>
+                      <div className="tv-ticket-value">{attendeeName || 'Guest'}</div>
                     </div>
-                  ) : null}
+                    <div className="text-right">
+                      <div className="tv-ticket-label">Status</div>
+                      <div className="tv-ticket-confirmed text-[15px]">Confirmed</div>
+                    </div>
+                  </div>
+
+                  <hr className="tv-ticket-dashes" />
+
+                  {/* WhatsApp CTA */}
+                  <div className="tv-ticket-section">
+                    <p className="text-[13px] text-[rgba(0,0,0,0.65)] leading-relaxed">
+                      <strong className="text-[#0d0d0d]">You're in.</strong> Join our WhatsApp community for session updates — access details will land in your inbox shortly.
+                    </p>
+                    <button className="tv-ticket-whatsapp-btn">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                      Join WhatsApp Community
+                    </button>
+                  </div>
+
+                  <hr className="tv-ticket-dashes" />
+
+                  {/* Barcode */}
+                  <div className="tv-ticket-section pt-4 pb-5">
+                    <TicketBarcode value={ticketId} />
+                    <p className="mt-2 text-center text-[11px] font-mono text-[rgba(0,0,0,0.4)] tracking-wider">{ticketId}</p>
+                  </div>
                 </div>
+
+                {/* Close button outside card */}
+                <button type="button" onClick={requestClose} className="tv-ticket-close-btn">
+                  Close Ticket
+                </button>
               </div>
             ) : null}
 
@@ -463,6 +410,7 @@ export function RegistrationModal(props: {
       </div>
     </div>
   )
+
   if (typeof document === 'undefined') return null
   return createPortal(modal, document.body)
 }

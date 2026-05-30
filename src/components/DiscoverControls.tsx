@@ -1,21 +1,16 @@
 'use client'
 
-import { useMemo, useTransition } from 'react'
+import { useEffect, useMemo, useTransition } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { Input } from './Input'
 import { cn } from '@/lib/cn'
+import { kvGet, kvSet } from '@/lib/indexedDb'
 
 function setParam(params: URLSearchParams, key: string, value: string) {
   if (!value) params.delete(key)
   else params.set(key, value)
 }
 
-/**
- * Client-side filter controls for `/discover`.
- *
- * We keep this as a Client Component because it depends on URL state and
- * interactive inputs. The page itself stays server-rendered for fast load.
- */
 export function DiscoverControls(props: { className?: string }) {
   const sp = useSearchParams()
   const router = useRouter()
@@ -37,12 +32,36 @@ export function DiscoverControls(props: { className?: string }) {
 
   const tagPlaceholder = useMemo(() => 'e.g. tech, ai, meetup', [])
 
+  useEffect(() => {
+    const hasAny = Boolean(q || tag || venue)
+    if (hasAny) {
+      kvSet('discover:lastFilters', { q, tag, venue }).catch(() => null)
+      return
+    }
+
+    let cancelled = false
+    ;(async () => {
+      const saved = await kvGet<{ q: string; tag: string; venue: string }>('discover:lastFilters')
+      if (cancelled) return
+      if (!saved) return
+      const next = new URLSearchParams(sp)
+      setParam(next, 'q', saved.q ?? '')
+      setParam(next, 'tag', saved.tag ?? '')
+      setParam(next, 'venue', saved.venue ?? '')
+      const qs = next.toString()
+      if (qs) router.replace(`${pathname}?${qs}`)
+    })().catch(() => null)
+
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <div className={cn('grid gap-3 sm:grid-cols-3', props.className)}>
       <div className="sm:col-span-2">
-        <label className="mb-1 block text-xs font-medium text-[color:var(--ink-muted)]">
-          Search
-        </label>
+        <label className="mb-1 tv-label">Search</label>
         <Input
           value={q}
           disabled={disabled}
@@ -51,13 +70,13 @@ export function DiscoverControls(props: { className?: string }) {
             const next = new URLSearchParams(sp)
             setParam(next, 'q', e.target.value)
             push(next)
+            kvSet('discover:lastFilters', { q: e.target.value, tag, venue }).catch(() => null)
           }}
         />
       </div>
+
       <div>
-        <label className="mb-1 block text-xs font-medium text-[color:var(--ink-muted)]">
-          Venue
-        </label>
+        <label className="mb-1 tv-label">Venue</label>
         <select
           value={venue}
           disabled={disabled}
@@ -65,8 +84,9 @@ export function DiscoverControls(props: { className?: string }) {
             const next = new URLSearchParams(sp)
             setParam(next, 'venue', e.target.value)
             push(next)
+            kvSet('discover:lastFilters', { q, tag, venue: e.target.value }).catch(() => null)
           }}
-          className="h-10 w-full rounded-lg border border-[color:var(--stroke)] bg-[color:var(--paper-muted)] px-3 text-sm text-[color:var(--ink)] shadow-sm outline-none focus:border-[color:var(--brand)] focus:ring-2 focus:ring-[color:color-mix(in_oklab,var(--brand),white_70%)]"
+          className="tv-input"
         >
           <option value="">Any</option>
           <option value="ONLINE">Online</option>
@@ -74,10 +94,9 @@ export function DiscoverControls(props: { className?: string }) {
           <option value="HYBRID">Hybrid</option>
         </select>
       </div>
+
       <div className="sm:col-span-3">
-        <label className="mb-1 block text-xs font-medium text-[color:var(--ink-muted)]">
-          Tag
-        </label>
+        <label className="mb-1 tv-label">Tag</label>
         <Input
           value={tag}
           disabled={disabled}
@@ -86,6 +105,7 @@ export function DiscoverControls(props: { className?: string }) {
             const next = new URLSearchParams(sp)
             setParam(next, 'tag', e.target.value)
             push(next)
+            kvSet('discover:lastFilters', { q, tag: e.target.value, venue }).catch(() => null)
           }}
         />
         <div className="mt-1 text-xs text-[color:var(--ink-muted)]">
@@ -97,3 +117,4 @@ export function DiscoverControls(props: { className?: string }) {
     </div>
   )
 }
+

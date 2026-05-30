@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { SiteHeader } from '@/components/SiteHeader'
-import { SiteFooter } from '@/components/SiteFooter'
 import { Chivo, Libre_Franklin, Poppins } from 'next/font/google'
 
 const body = Libre_Franklin({
@@ -54,7 +53,6 @@ export default function RootLayout({
           <div className="tv-shell">
             <SiteHeader />
             <main>{children}</main>
-            <SiteFooter />
           </div>
         </div>
       </body>

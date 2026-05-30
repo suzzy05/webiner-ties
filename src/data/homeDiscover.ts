@@ -85,6 +85,7 @@ export type FeaturedEvent = {
   key: string
   title: string
   description: string
+  posterUrl?: string
   badge?: string
   time: string
   date: string
@@ -98,6 +99,8 @@ export const featuredEvents: FeaturedEvent[] = [
     key: 'tiesverse-ai-summit',
     title: 'Tiesverse AI Summit 2025',
     description: 'A full day of talks and workshops on the frontier of AI.',
+    posterUrl:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCNINWMeTnXggEasf0fwENTtE6QN4mYeD3Ga-lqmqHbtHhTzB26iZZyc3p93b-GmzWET5bPJHp9Zijy3mKYhaumUXBuDaIpBSXkNUuE5boOYl-Kn1DqUCjoZSFWfQQ-b5tqHwznkZ3vMa8pTeuDcGQJNEi6xo4vbLF90StX21T98iBr6BXt593923r2csrBTo4evSnrHG32kLVvlZ0xXAIIllLDLl1KjO9lrnqsbb1rjlFeLCcK0uYFBRp3lJJPu-mW7zEDzLWZ7eCJ',
     badge: 'Live',
     time: '10:00 AM IST',
     date: '12 Jun',
@@ -109,6 +112,8 @@ export const featuredEvents: FeaturedEvent[] = [
     key: 'product-demo-day',
     title: 'Product Demo Day - Season 3',
     description: 'Launches, demos, and office hours with the core team.',
+    posterUrl:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCNINWMeTnXggEasf0fwENTtE6QN4mYeD3Ga-lqmqHbtHhTzB26iZZyc3p93b-GmzWET5bPJHp9Zijy3mKYhaumUXBuDaIpBSXkNUuE5boOYl-Kn1DqUCjoZSFWfQQ-b5tqHwznkZ3vMa8pTeuDcGQJNEi6xo4vbLF90StX21T98iBr6BXt593923r2csrBTo4evSnrHG32kLVvlZ0xXAIIllLDLl1KjO9lrnqsbb1rjlFeLCcK0uYFBRp3lJJPu-mW7zEDzLWZ7eCJ',
     badge: 'Featured',
     time: '6:00 PM IST',
     date: '18 Jun',
@@ -120,6 +125,8 @@ export const featuredEvents: FeaturedEvent[] = [
     key: 'builders-hackathon',
     title: 'Builders Hackathon: Build in 24h',
     description: 'Hands-on building sessions and mini-hackathons.',
+    posterUrl:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCNINWMeTnXggEasf0fwENTtE6QN4mYeD3Ga-lqmqHbtHhTzB26iZZyc3p93b-GmzWET5bPJHp9Zijy3mKYhaumUXBuDaIpBSXkNUuE5boOYl-Kn1DqUCjoZSFWfQQ-b5tqHwznkZ3vMa8pTeuDcGQJNEi6xo4vbLF90StX21T98iBr6BXt593923r2csrBTo4evSnrHG32kLVvlZ0xXAIIllLDLl1KjO9lrnqsbb1rjlFeLCcK0uYFBRp3lJJPu-mW7zEDzLWZ7eCJ',
     badge: 'Hands-on',
     time: '9:00 AM IST',
     date: '22 Jun',
@@ -131,6 +138,8 @@ export const featuredEvents: FeaturedEvent[] = [
     key: 'design-critique-circle',
     title: 'Design Critique Circle - Vol. 8',
     description: 'Portfolio reviews and collaborative creative workshops.',
+    posterUrl:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCNINWMeTnXggEasf0fwENTtE6QN4mYeD3Ga-lqmqHbtHhTzB26iZZyc3p93b-GmzWET5bPJHp9Zijy3mKYhaumUXBuDaIpBSXkNUuE5boOYl-Kn1DqUCjoZSFWfQQ-b5tqHwznkZ3vMa8pTeuDcGQJNEi6xo4vbLF90StX21T98iBr6BXt593923r2csrBTo4evSnrHG32kLVvlZ0xXAIIllLDLl1KjO9lrnqsbb1rjlFeLCcK0uYFBRp3lJJPu-mW7zEDzLWZ7eCJ',
     time: '3:00 PM IST',
     date: '25 Jun',
     organizer: 'Design Buddies',
@@ -141,6 +150,8 @@ export const featuredEvents: FeaturedEvent[] = [
     key: 'research-agents-edition',
     title: 'Research Reading Room: Agents Edition',
     description: 'A friendly reading party for the latest papers on agents.',
+    posterUrl:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCNINWMeTnXggEasf0fwENTtE6QN4mYeD3Ga-lqmqHbtHhTzB26iZZyc3p93b-GmzWET5bPJHp9Zijy3mKYhaumUXBuDaIpBSXkNUuE5boOYl-Kn1DqUCjoZSFWfQQ-b5tqHwznkZ3vMa8pTeuDcGQJNEi6xo4vbLF90StX21T98iBr6BXt593923r2csrBTo4evSnrHG32kLVvlZ0xXAIIllLDLl1KjO9lrnqsbb1rjlFeLCcK0uYFBRp3lJJPu-mW7zEDzLWZ7eCJ',
     time: '5:00 PM IST',
     date: '28 Jun',
     organizer: 'Reading Room',
@@ -151,6 +162,8 @@ export const featuredEvents: FeaturedEvent[] = [
     key: 'career-lab-q3',
     title: 'Career Lab Q3: Mock Interviews',
     description: 'Resume reviews, mock interviews, and career Q&A.',
+    posterUrl:
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCNINWMeTnXggEasf0fwENTtE6QN4mYeD3Ga-lqmqHbtHhTzB26iZZyc3p93b-GmzWET5bPJHp9Zijy3mKYhaumUXBuDaIpBSXkNUuE5boOYl-Kn1DqUCjoZSFWfQQ-b5tqHwznkZ3vMa8pTeuDcGQJNEi6xo4vbLF90StX21T98iBr6BXt593923r2csrBTo4evSnrHG32kLVvlZ0xXAIIllLDLl1KjO9lrnqsbb1rjlFeLCcK0uYFBRp3lJJPu-mW7zEDzLWZ7eCJ',
     badge: 'Free',
     time: '11:00 AM IST',
     date: '2 Jul',
