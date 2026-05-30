@@ -134,15 +134,16 @@ async function ensureSeeded() {
         })
       }
 
-      // Insert tickets.
+      // Insert tickets. Use a generated UUID — mock ticket IDs like 'general' are not
+      // globally unique across events and cannot be used as a PRIMARY KEY directly.
       for (let i = 0; i < e.tickets.length; i++) {
         const t = e.tickets[i]!
         await db.execute({
           sql: `
-            INSERT INTO tickets (id, event_id, name, description, price_in_paise, quantity, sort_order, created_at)
+            INSERT OR IGNORE INTO tickets (id, event_id, name, description, price_in_paise, quantity, sort_order, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
           `,
-          args: [t.id, id, t.name, t.description ?? null, t.priceInPaise, null, i, createdAt],
+          args: [randomUUID(), id, t.name, t.description ?? null, t.priceInPaise, null, i, createdAt],
         })
       }
 
