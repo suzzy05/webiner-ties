@@ -3,7 +3,7 @@ node_modules/
 out/
 dist/
 .data/
-
+.claude/
 .DS_Store
 
 .env

@@ -42,6 +42,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Prevent flash of wrong theme before JS loads */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('tv-theme');document.documentElement.setAttribute('data-theme',t||'dark');}catch(e){}})();`,
+          }}
+        />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
           rel="stylesheet"

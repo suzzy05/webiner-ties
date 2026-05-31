@@ -55,6 +55,200 @@
 }
 
 /* ═══════════════════════════════════════════════
+   CAPPUCCINO LIGHT THEME
+   ═══════════════════════════════════════════════ */
+[data-theme="light"] {
+  --background: #f5ede0;
+  --surface:    #f5ede0;
+  --card:       #fdf9f3;
+  --card-hover: #fffcf7;
+  --card-active:#fffcf7;
+
+  --stroke:       rgba(0, 0, 0, 0.07);
+  --stroke-mid:   rgba(0, 0, 0, 0.11);
+  --stroke-strong:rgba(0, 0, 0, 0.20);
+
+  --ink:          #1c1a16;
+  --ink-muted:    #7a6f60;
+  --ink-subtle:   rgba(28, 26, 22, 0.35);
+  --ink-highlight:#9c7a14;
+
+  --accent:        #9c7a14;
+  --accent-2:      #9c7a14;
+  --accent-dim:    rgba(156, 122, 20, 0.09);
+  --accent-glow:   rgba(156, 122, 20, 0.16);
+  --accent-border: rgba(156, 122, 20, 0.28);
+
+  --brand:             var(--accent);
+  --brand-orange:      var(--accent);
+  --brand-600:         #9c7a14;
+  --brand-700:         #9c7a14;
+  --primary:           var(--accent);
+  --primary-container: var(--accent-dim);
+  --on-primary:        #fdfaf5;
+
+  --on-background:            var(--ink);
+  --on-surface:               var(--ink);
+  --on-surface-variant:       var(--ink-muted);
+  --surface-container-low:    #fdf9f3;
+  --surface-container-high:   #ede5d6;
+  --surface-container-highest:#e8e0d0;
+  --secondary-container:      rgba(156, 122, 20, 0.09);
+  --on-secondary-fixed:       rgba(28, 26, 22, 0.9);
+  --outline-editorial:        rgba(0, 0, 0, 0.04);
+  --outline:                  rgba(0, 0, 0, 0.08);
+
+  --paper:              var(--background);
+  --paper-muted:        var(--card);
+  --stroke-strong-alias:var(--stroke-strong);
+}
+
+/* Light theme body background — warm cappuccino glow */
+html[data-theme="light"] body::before {
+  background:
+    radial-gradient(ellipse 110% 55% at 50% -12%, rgba(156, 122, 20, 0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 70% 60% at -5% 30%,   rgba(210, 170, 100, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 55% at 105% 20%,  rgba(200, 160, 110, 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 100% 50% at 50% 100%, rgba(230, 210, 180, 0.30) 0%, transparent 55%),
+    linear-gradient(to bottom, #f8f0e2 0%, #f5ede0 60%);
+}
+
+/* Light theme film grain — much more subtle */
+html[data-theme="light"] body::after { opacity: 0.025; }
+
+/* Light theme header */
+html[data-theme="light"] header {
+  background: rgba(245, 237, 224, 0.88) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.07) !important;
+}
+
+html[data-theme="light"] header .absolute.inset-x-0.top-0 {
+  background: linear-gradient(to right, transparent, rgba(156,122,20,0.25), transparent) !important;
+}
+
+/* Nav link hover — override white-tinted tailwind class on light bg */
+html[data-theme="light"] header nav a:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Light theme buttons */
+html[data-theme="light"] .tv-btn {
+  border-color: rgba(0, 0, 0, 0.10);
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--ink);
+}
+html[data-theme="light"] .tv-btn:hover {
+  background: rgba(0, 0, 0, 0.07);
+  border-color: rgba(0, 0, 0, 0.16);
+}
+html[data-theme="light"] .tv-btn-primary {
+  background: var(--accent);
+  color: #fdfaf5;
+  box-shadow: 0 2px 12px rgba(156, 122, 20, 0.25);
+}
+html[data-theme="light"] .tv-btn-primary:hover {
+  background: color-mix(in oklab, var(--accent), black 8%);
+  box-shadow: 0 4px 20px rgba(156, 122, 20, 0.35);
+}
+
+/* Light theme inputs */
+html[data-theme="light"] .tv-input {
+  border-color: rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.70);
+  color: var(--ink);
+}
+html[data-theme="light"] .tv-input:hover {
+  border-color: rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.85);
+}
+html[data-theme="light"] .tv-input:focus {
+  border-color: rgba(156, 122, 20, 0.40);
+  box-shadow: 0 0 0 3px rgba(156, 122, 20, 0.09), inset 0 1px 0 rgba(255,255,255,0.6);
+  background: rgba(255, 255, 255, 0.95);
+}
+html[data-theme="light"] .tv-input::placeholder { color: rgba(122, 111, 96, 0.60); }
+
+/* Light theme surface */
+html[data-theme="light"] .tv-surface {
+  border-color: rgba(0, 0, 0, 0.07);
+  background: rgba(253, 249, 243, 0.92);
+}
+html[data-theme="light"] .tv-surface-muted {
+  background: var(--card);
+  border-color: var(--stroke);
+}
+
+/* Light theme card shadows */
+html[data-theme="light"] .tv-card-hover:hover,
+html[data-theme="light"] .tv-card.tv-interactive:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+/* Light theme glow card */
+html[data-theme="light"] .tv-card-glow {
+  border-color: rgba(156, 122, 20, 0.22);
+  background: linear-gradient(135deg, rgba(156, 122, 20, 0.05) 0%, var(--card) 55%);
+}
+
+/* Light theme pills */
+html[data-theme="light"] .tv-pill {
+  border-color: rgba(0, 0, 0, 0.10);
+  background: rgba(0, 0, 0, 0.035);
+  color: var(--ink-muted);
+}
+
+/* Light theme selection */
+html[data-theme="light"] ::selection {
+  background: rgba(156, 122, 20, 0.18);
+  color: var(--ink);
+}
+
+/* Light theme scrollbar */
+html[data-theme="light"] .tv-scrollbar {
+  scrollbar-color: rgba(156, 122, 20, 0.25) transparent;
+}
+html[data-theme="light"] .tv-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 122, 20, 0.20);
+}
+
+/* Light theme RSVP panel */
+html[data-theme="light"] .rsvp-panel {
+  background: linear-gradient(135deg, rgba(253,249,243,0.98) 0%, rgba(248,242,232,0.96) 100%);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.8) inset;
+}
+html[data-theme="light"] .rsvp-steps {
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.03);
+}
+html[data-theme="light"] .rsvp-step-btn:not(:last-child) {
+  border-right-color: rgba(0, 0, 0, 0.08);
+}
+html[data-theme="light"] .rsvp-step-num {
+  background: rgba(0, 0, 0, 0.07);
+  color: var(--ink-muted);
+}
+html[data-theme="light"] .rsvp-step-btn.active .rsvp-step-num {
+  background: var(--accent);
+  color: #fdfaf5;
+}
+
+/* Light theme simple rsvp card */
+html[data-theme="light"] .rsvp-simple-card {
+  background: linear-gradient(135deg, rgba(156,122,20,0.04) 0%, rgba(253,249,243,0.99) 100%);
+  border-color: rgba(156, 122, 20, 0.16);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.08), 0 0 0 1px rgba(156,122,20,0.05) inset;
+}
+
+/* Light theme shimmer */
+html[data-theme="light"] .tv-shimmer {
+  background: linear-gradient(90deg,
+    rgba(0,0,0,0.03) 0%,
+    rgba(0,0,0,0.06) 40%,
+    rgba(0,0,0,0.03) 80%);
+}
+
+/* ═══════════════════════════════════════════════
    BASE
    ═══════════════════════════════════════════════ */
 html, body { height: 100%; }
